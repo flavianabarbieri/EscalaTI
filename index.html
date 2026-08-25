@@ -104,6 +104,46 @@
     .legenda span b { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:7px; margin-right:5px; background:#edf1ef; color:var(--texto); }
     footer { text-align:center; color:var(--cinza); padding:22px 10px 0; font-size:.78rem; }
     @media (max-width:700px) { .filtros,.config-grid,.ferias-grid,.anotacao-linha{grid-template-columns:1fr}.hoje,.configurar,.ferias-botao,.anotacao-linha button{width:100%}.painel{padding:15px}.calendario{gap:4px}.dia{min-height:72px;padding:6px}.dia.aniversario{min-height:96px}.semana{font-size:.66rem}.dia .numero{top:7px;left:7px}.dia .codigo{right:4px;bottom:4px;height:23px;min-width:23px}.dia .marca-anotacao{left:4px;bottom:7px}.ferias-nomes{left:4px;right:4px;bottom:32px}.balao-aniversario{top:29px;left:4px;right:4px}.ferias-item{align-items:flex-start;flex-direction:column}.ferias-item button{width:100%}.resultado{padding:15px} }
+
+    /* Plantão remoto 24h */
+    .remoto-resumo { margin:16px 0 4px; padding:14px 16px; border:1px solid #cbb9f1; border-radius:14px; background:linear-gradient(135deg,#faf7ff,#f1f7ff); display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .remoto-resumo .rotulo { display:block; color:#5b2aa8; font-size:.8rem; font-weight:900; letter-spacing:.04em; }
+    .remoto-resumo .atual { margin-top:3px; color:#34214f; font-size:1.02rem; font-weight:850; }
+    .remoto-resumo .proximo { margin-top:3px; color:#6e6380; font-size:.82rem; }
+    .remoto-botao { color:#fff; background:#6b3db8; padding:0 18px; white-space:nowrap; }
+    .remoto-painel { margin:18px 0; padding:18px; border:1px solid #cbb9f1; border-radius:14px; background:#fbf9ff; }
+    .remoto-painel h2 { margin:0 0 5px; font-size:1.15rem; }
+    .remoto-painel > p { margin:0 0 16px; color:var(--cinza); font-size:.88rem; }
+    .remoto-grid { display:grid; grid-template-columns:1.05fr 1fr 1fr 1.35fr; gap:10px; align-items:end; }
+    .remoto-lista { margin-top:14px; display:grid; gap:8px; }
+    .remoto-item { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid #d9ccf5; border-radius:10px; background:#fff; }
+    .remoto-item .nome { color:#5b2aa8; font-weight:850; }
+    .remoto-item .datas,.remoto-item .obs { margin-top:2px; color:#6e6380; font-size:.82rem; }
+    .remoto-item .acoes { display:flex; gap:6px; }
+    .remoto-item button { min-height:36px; padding:0 11px; }
+    .remoto-editar { background:#eee7fb; color:#5526a8; }
+    .remoto-excluir { background:#fee2e2; color:#9b1c1c; }
+    .remoto-vazio { margin:0; padding:10px 0; color:var(--cinza); font-size:.86rem; }
+    .remoto-data { margin:-8px 0 20px; padding:11px 14px; border-left:4px solid #6b3db8; border-radius:9px; background:#f7f2ff; color:#433855; font-size:.88rem; }
+    .remoto-data strong { color:#5b2aa8; }
+    .plantao-remoto-badge { position:absolute; z-index:3; left:5px; right:5px; top:31px; padding:3px 5px; border-radius:7px; background:#6b3db8; color:#fff; font-size:.57rem; font-weight:900; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 2px 6px rgba(61,35,108,.22); }
+    .dia.tem-remoto { min-height:106px; }
+    .dia.tem-remoto.aniversario { min-height:128px; }
+    .dia.tem-remoto.aniversario .plantao-remoto-badge { top:58px; }
+    .legenda .legenda-remoto b { background:#6b3db8; color:#fff; }
+    .remover-colaborador:disabled { cursor:not-allowed; opacity:.62; }
+    @media (max-width:700px) {
+      .remoto-resumo { align-items:flex-start; flex-direction:column; }
+      .remoto-botao { width:100%; }
+      .remoto-grid { grid-template-columns:1fr; }
+      .remoto-item { grid-template-columns:1fr; }
+      .remoto-item .acoes { width:100%; }
+      .remoto-item .acoes button { flex:1; }
+      .plantao-remoto-badge { top:29px; left:4px; right:4px; font-size:.51rem; }
+      .dia.tem-remoto { min-height:108px; }
+      .dia.tem-remoto.aniversario { min-height:132px; }
+      .dia.tem-remoto.aniversario .plantao-remoto-badge { top:57px; }
+    }
   </style>
 </head>
 <body>
@@ -117,6 +157,29 @@
         <button class="configurar" id="btnConfigurar" type="button">Editar equipe</button>
         <button class="ferias-botao" id="btnFerias" type="button">Gerenciar férias</button>
       </div>
+      <section class="remoto-resumo" id="remotoResumo">
+        <div>
+          <span class="rotulo">📡 PLANTÃO REMOTO 24H</span>
+          <div class="atual" id="remotoAtual">Carregando...</div>
+          <div class="proximo" id="remotoProximo"></div>
+        </div>
+        <button class="remoto-botao" id="btnRemoto" type="button">Gerenciar plantão remoto</button>
+      </section>
+      <section class="remoto-painel" id="painelRemoto" hidden>
+        <h2>Gerenciar plantão remoto 24h</h2>
+        <p>Cadastre os períodos livremente. As trocas não precisam acontecer nos dias 1 e 15.</p>
+        <div class="remoto-grid">
+          <div><label for="remotoPessoa">PLANTONISTA</label><select id="remotoPessoa"></select></div>
+          <div><label for="remotoInicio">DATA DE INÍCIO</label><input id="remotoInicio" type="date"></div>
+          <div><label for="remotoFim">DATA FINAL</label><input id="remotoFim" type="date"></div>
+          <div><label for="remotoObservacao">OBSERVAÇÃO</label><input id="remotoObservacao" maxlength="120" placeholder="Ex.: troca excepcional"></div>
+        </div>
+        <div class="config-acoes">
+          <button class="cancelar" id="btnCancelarRemoto" type="button">Fechar</button>
+          <button class="salvar" id="btnSalvarRemoto" type="button">+ Adicionar período</button>
+        </div>
+        <div class="remoto-lista" id="remotoLista"></div>
+      </section>
       <section class="ferias-painel" id="painelFerias" hidden>
         <h2>Gerenciar férias</h2>
         <p>Cadastre um ou mais períodos de férias. A quantidade considera dias corridos e será sincronizada entre seus aparelhos.</p>
@@ -135,6 +198,7 @@
         <div class="config-acoes"><button class="adicionar" id="btnAdicionarColaborador" type="button">+ Adicionar colaborador</button><button class="cancelar" id="btnCancelar" type="button">Cancelar</button><button class="salvar" id="btnSalvar" type="button">Salvar alterações</button></div>
       </section>
       <div class="resultado" id="resultado" data-status=""><div class="icone" id="icone">📅</div><div><h2 id="tituloResultado">Selecione uma data</h2><p id="textoResultado">A situação aparecerá aqui.</p></div></div>
+      <div class="remoto-data" id="remotoData" hidden></div>
       <section class="anotacao-dia">
         <h2>Anotação da data selecionada</h2>
         <p id="dataAnotacao">Selecione um dia no calendário para escrever uma observação.</p>
@@ -147,7 +211,7 @@
       <div class="topo-calendario"><h2 id="tituloMes"></h2><div class="navegacao"><button id="anterior" title="Mês anterior">‹</button><button id="proximo" title="Próximo mês">›</button></div></div>
       <div class="calendario" id="calendario"></div>
       <div class="observacoes" id="observacoes" hidden></div>
-      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span></div>
+      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span class="legenda-remoto"><b>R</b>Remoto 24h</span></div>
     </section>
     <footer>Escala de plantão da equipe</footer>
   </main>
@@ -163,6 +227,10 @@
     const observacoes = document.querySelector('#observacoes');
     const textoAnotacao = document.querySelector('#textoAnotacao'), dataAnotacao = document.querySelector('#dataAnotacao');
     const btnExcluirAnotacao = document.querySelector('#btnExcluirAnotacao');
+    const painelRemoto = document.querySelector('#painelRemoto'), remotoPessoa = document.querySelector('#remotoPessoa');
+    const remotoInicio = document.querySelector('#remotoInicio'), remotoFim = document.querySelector('#remotoFim');
+    const remotoObservacao = document.querySelector('#remotoObservacao'), remotoLista = document.querySelector('#remotoLista');
+    const remotoAtual = document.querySelector('#remotoAtual'), remotoProximo = document.querySelector('#remotoProximo'), remotoData = document.querySelector('#remotoData');
     const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     let mesVisivel;
     const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -173,6 +241,8 @@
     // Identificação exclusiva da Equipe TI para não misturar dados com outras escalas.
     const CHAVE_EQUIPE = 'escalaEquipeTIV2';
     const CHAVE_ANOTACOES = 'escalaAnotacoesDatasTI';
+    const CHAVE_PLANTOES_REMOTOS = 'escalaPlantoesRemotosTIV1';
+    const PLANTONISTAS_REMOTOS_IDS = ['GUILHERME','MARCELO','JOAO','GABRIEL'];
     const SUPABASE_URL = 'https://nfjbgwrogpzuhgufpxol.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_RJX0v05NZhfZ0ondeE63WQ_YDwsogLz';
     const ID_ESCALA_ONLINE = 'escala_ti';
@@ -181,7 +251,10 @@
       FLAVIANA:{nome:'Flaviana',setor:'',cargaHoraria:'mesma',semana:'06:30 às 12:30',sabado:'07:00 às 19:00',domingo:'07:00 às 19:00',feriasInicio:'',feriasDias:0},
       VINICIUS:{nome:'Vinicius',setor:'',cargaHoraria:'inversa',semana:'13:30 às 18:30',sabado:'07:00 às 19:00',domingo:'07:00 às 19:00',feriasInicio:'',feriasDias:0},
       CAIO:{nome:'Caio',setor:'',cargaHoraria:'8h',semana:'8 horas',sabado:'Folga',domingo:'Folga',feriasInicio:'',feriasDias:0},
-      GABRIEL:{nome:'Gabriel',setor:'',cargaHoraria:'8h',semana:'8 horas',sabado:'Folga',domingo:'Folga',feriasInicio:'2026-08-11',feriasDias:12}
+      GABRIEL:{nome:'Gabriel',setor:'',cargaHoraria:'8h',semana:'8 horas',sabado:'Folga',domingo:'Folga',feriasInicio:'2026-08-11',feriasDias:12},
+      GUILHERME:{nome:'Guilherme',setor:'',cargaHoraria:'8h',semana:'8 horas',sabado:'Folga',domingo:'Folga',feriasPeriodos:[]},
+      MARCELO:{nome:'Marcelo',setor:'',cargaHoraria:'8h',semana:'8 horas',sabado:'Folga',domingo:'Folga',feriasPeriodos:[]},
+      JOAO:{nome:'João',setor:'',cargaHoraria:'8h',semana:'8 horas',sabado:'Folga',domingo:'Folga',feriasPeriodos:[]}
     };
     let configEquipe;
     try {
@@ -204,9 +277,56 @@
       return equipe;
     }
     configEquipe=normalizarEquipe(configEquipe);
+    function garantirPlantonistasRemotosNaEquipe() {
+      let alterou=false;
+      PLANTONISTAS_REMOTOS_IDS.forEach(id=>{
+        if (!configEquipe[id] && CONFIG_PADRAO[id]) {
+          configEquipe[id]=normalizarEquipe({[id]:structuredClone(CONFIG_PADRAO[id])})[id];
+          alterou=true;
+        }
+      });
+      if (alterou) localStorage.setItem(CHAVE_EQUIPE,JSON.stringify(configEquipe));
+      return alterou;
+    }
+    garantirPlantonistasRemotosNaEquipe();
+
     let anotacoesDatas;
     try { anotacoesDatas = JSON.parse(localStorage.getItem(CHAVE_ANOTACOES)||'{}'); }
     catch { anotacoesDatas = {}; }
+
+    const PLANTOES_REMOTOS_PADRAO = [
+      {id:'rem-20260801-guilherme',pessoaId:'GUILHERME',inicio:'2026-08-01',fim:'2026-08-14',observacao:''},
+      {id:'rem-20260815-marcelo',pessoaId:'MARCELO',inicio:'2026-08-15',fim:'2026-08-31',observacao:''},
+      {id:'rem-20260901-joao',pessoaId:'JOAO',inicio:'2026-09-01',fim:'2026-09-14',observacao:''},
+      {id:'rem-20260915-gabriel',pessoaId:'GABRIEL',inicio:'2026-09-15',fim:'2026-09-30',observacao:''}
+    ];
+    let plantoesRemotos=[];
+    let plantoesRemotosInicializados=false;
+    let remotoEditandoId=null;
+
+    function normalizarEstadoRemoto(valor) {
+      if (Array.isArray(valor)) return {inicializado:valor.length>0,periodos:valor};
+      if (valor && typeof valor==='object' && Array.isArray(valor.periodos)) {
+        return {inicializado:valor.inicializado!==false,periodos:valor.periodos};
+      }
+      return {inicializado:false,periodos:[]};
+    }
+    function ordenarPlantoesRemotos(lista=plantoesRemotos) {
+      return [...lista].sort((a,b)=>String(a.inicio).localeCompare(String(b.inicio)) || String(a.fim).localeCompare(String(b.fim)));
+    }
+    function estadoRemotoParaSalvar() {
+      return {inicializado:true,periodos:ordenarPlantoesRemotos()};
+    }
+    function persistirPlantoesRemotos() {
+      localStorage.setItem(CHAVE_PLANTOES_REMOTOS,JSON.stringify(estadoRemotoParaSalvar()));
+    }
+    try {
+      const estadoLocal=normalizarEstadoRemoto(JSON.parse(localStorage.getItem(CHAVE_PLANTOES_REMOTOS)||'null'));
+      if (estadoLocal.inicializado) {
+        plantoesRemotos=ordenarPlantoesRemotos(estadoLocal.periodos);
+        plantoesRemotosInicializados=true;
+      }
+    } catch {}
 
     function cabecalhosSupabase(prefer='') {
       const cabecalhos = {
@@ -217,50 +337,152 @@
       if (prefer) cabecalhos.Prefer = prefer;
       return cabecalhos;
     }
-    async function salvarDadosOnline() {
+    async function salvarDadosOnline(silencioso=false) {
       try {
+        const payload={
+          id: ID_ESCALA_ONLINE,
+          equipe: configEquipe,
+          anotacoes: anotacoesDatas,
+          updated_at: new Date().toISOString()
+        };
+        if (plantoesRemotosInicializados) payload.plantoes_remotos=estadoRemotoParaSalvar();
         const resposta = await fetch(`${URL_DADOS_ONLINE}?on_conflict=id`, {
           method: 'POST',
           headers: cabecalhosSupabase('resolution=merge-duplicates,return=minimal'),
-          body: JSON.stringify({
-            id: ID_ESCALA_ONLINE,
-            equipe: configEquipe,
-            anotacoes: anotacoesDatas,
-            updated_at: new Date().toISOString()
-          })
+          body: JSON.stringify(payload)
         });
         if (!resposta.ok) throw new Error(await resposta.text());
         return true;
       } catch (erro) {
         console.error('Falha ao sincronizar a escala da TI:', erro);
-        alert('A alteração ficou salva neste aparelho, mas não foi possível sincronizá-la agora. Verifique a internet e tente salvar novamente.');
+        if (!silencioso) alert('A alteração ficou salva neste aparelho, mas não foi possível sincronizá-la agora. Verifique a internet e tente salvar novamente.');
         return false;
       }
     }
     async function carregarDadosOnline() {
       try {
-        const resposta = await fetch(`${URL_DADOS_ONLINE}?id=eq.${encodeURIComponent(ID_ESCALA_ONLINE)}&select=equipe,anotacoes`, {
+        const resposta = await fetch(`${URL_DADOS_ONLINE}?id=eq.${encodeURIComponent(ID_ESCALA_ONLINE)}&select=equipe,anotacoes,plantoes_remotos`, {
           headers: cabecalhosSupabase()
         });
         if (!resposta.ok) throw new Error(await resposta.text());
         const [registro] = await resposta.json();
+        let precisaInicializarRemotoOnline=false;
         if (registro) {
           if (registro.equipe && Object.keys(registro.equipe).length) configEquipe = normalizarEquipe(registro.equipe);
+          garantirPlantonistasRemotosNaEquipe();
           anotacoesDatas = registro.anotacoes || {};
+
+          const estadoOnline=normalizarEstadoRemoto(registro.plantoes_remotos);
+          if (estadoOnline.inicializado) {
+            plantoesRemotos=ordenarPlantoesRemotos(estadoOnline.periodos);
+            plantoesRemotosInicializados=true;
+          } else if (!plantoesRemotosInicializados) {
+            plantoesRemotos=structuredClone(PLANTOES_REMOTOS_PADRAO);
+            plantoesRemotosInicializados=true;
+            precisaInicializarRemotoOnline=true;
+          }
+
           localStorage.setItem(CHAVE_EQUIPE, JSON.stringify(configEquipe));
           localStorage.setItem(CHAVE_ANOTACOES, JSON.stringify(anotacoesDatas));
+          if (plantoesRemotosInicializados) persistirPlantoesRemotos();
+
           preencherPessoas(pessoa.value);
+          preencherPessoasRemotas();
+          renderizarListaRemoto();
+          atualizarResumoRemoto();
           renderizar();
+
+          if (precisaInicializarRemotoOnline) await salvarDadosOnline(true);
         } else {
-          await salvarDadosOnline();
+          garantirPlantonistasRemotosNaEquipe();
+          if (!plantoesRemotosInicializados) {
+            plantoesRemotos=structuredClone(PLANTOES_REMOTOS_PADRAO);
+            plantoesRemotosInicializados=true;
+            persistirPlantoesRemotos();
+          }
+          await salvarDadosOnline(true);
         }
       } catch (erro) {
         console.error('Falha ao carregar a escala da TI:', erro);
+        if (!plantoesRemotosInicializados) {
+          plantoesRemotos=structuredClone(PLANTOES_REMOTOS_PADRAO);
+          plantoesRemotosInicializados=true;
+          persistirPlantoesRemotos();
+        }
+        preencherPessoasRemotas();
+        renderizarListaRemoto();
+        atualizarResumoRemoto();
+        renderizar();
       }
     }
 
     function escaparHtml(valor) {
       return String(valor).replace(/[&<>"']/g, caractere => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[caractere]);
+    }
+    function nomePlantonistaRemoto(id) {
+      return configEquipe[id]?.nome || ({GUILHERME:'Guilherme',MARCELO:'Marcelo',JOAO:'João',GABRIEL:'Gabriel'}[id] || id);
+    }
+    function formatarDataIso(iso) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||''))) return '';
+      const [a,m,d]=iso.split('-').map(Number);
+      return new Date(a,m-1,d).toLocaleDateString('pt-BR');
+    }
+    function periodoRemotoDaData(chaveData) {
+      return ordenarPlantoesRemotos().find(p=>p.inicio<=chaveData && p.fim>=chaveData) || null;
+    }
+    function proximoPeriodoRemoto(chaveData) {
+      return ordenarPlantoesRemotos().find(p=>p.inicio>chaveData) || null;
+    }
+    function preencherPessoasRemotas() {
+      if (!remotoPessoa) return;
+      const selecionado=remotoPessoa.value;
+      remotoPessoa.innerHTML=PLANTONISTAS_REMOTOS_IDS.map(id=>`<option value="${id}">${escaparHtml(nomePlantonistaRemoto(id))}</option>`).join('');
+      if ([...remotoPessoa.options].some(o=>o.value===selecionado)) remotoPessoa.value=selecionado;
+    }
+    function atualizarResumoRemoto() {
+      if (!remotoAtual || !remotoProximo) return;
+      const chaveHoje=isoLocal(new Date());
+      const atual=periodoRemotoDaData(chaveHoje), proximo=proximoPeriodoRemoto(chaveHoje);
+      remotoAtual.textContent=atual
+        ? `${nomePlantonistaRemoto(atual.pessoaId)} • ${formatarDataIso(atual.inicio)} a ${formatarDataIso(atual.fim)}`
+        : 'Nenhum plantonista remoto cadastrado para hoje';
+      remotoProximo.textContent=proximo
+        ? `Próximo: ${nomePlantonistaRemoto(proximo.pessoaId)} • a partir de ${formatarDataIso(proximo.inicio)}`
+        : 'Sem próximo período cadastrado';
+    }
+    function mostrarRemotoData(chaveData) {
+      const periodo=periodoRemotoDaData(chaveData);
+      if (!periodo) {
+        remotoData.hidden=true;
+        remotoData.innerHTML='';
+        return;
+      }
+      remotoData.hidden=false;
+      remotoData.innerHTML=`📡 <strong>Plantão remoto 24h:</strong> ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))} • ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}${periodo.observacao ? ` • ${escaparHtml(periodo.observacao)}` : ''}`;
+    }
+    function renderizarListaRemoto() {
+      if (!remotoLista) return;
+      const lista=ordenarPlantoesRemotos();
+      remotoLista.innerHTML=lista.length ? lista.map(periodo=>`
+        <div class="remoto-item">
+          <div>
+            <div class="nome">📡 ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))}</div>
+            <div class="datas">${formatarDataIso(periodo.inicio)} até ${formatarDataIso(periodo.fim)} • 24h remoto</div>
+            ${periodo.observacao ? `<div class="obs">${escaparHtml(periodo.observacao)}</div>` : ''}
+          </div>
+          <div class="acoes">
+            <button class="remoto-editar" type="button" data-editar-remoto="${escaparHtml(periodo.id)}">Editar</button>
+            <button class="remoto-excluir" type="button" data-excluir-remoto="${escaparHtml(periodo.id)}">Excluir</button>
+          </div>
+        </div>`).join('') : '<p class="remoto-vazio">Nenhum período de plantão remoto cadastrado.</p>';
+    }
+    function limparFormularioRemoto() {
+      remotoEditandoId=null;
+      if (remotoPessoa) remotoPessoa.value=PLANTONISTAS_REMOTOS_IDS[0];
+      remotoInicio.value='';
+      remotoFim.value='';
+      remotoObservacao.value='';
+      document.querySelector('#btnSalvarRemoto').textContent='+ Adicionar período';
     }
     function carregarAnotacao() {
       const chave = dataInput.value, texto = chave ? textoDaAnotacao(chave) : '';
@@ -284,7 +506,7 @@
       return Object.keys(configEquipe).sort((a,b) => (configEquipe[a].nome || a).localeCompare(configEquipe[b].nome || b,'pt-BR'));
     }
     function preencherPessoas(selecionada='FLAVIANA') {
-      pessoa.innerHTML = pessoasDisponiveis().map(n => `<option value="${n}">${escaparHtml(configEquipe[n].nome)}${configEquipe[n].setor ? ` — ${escaparHtml(configEquipe[n].setor)}` : ''}</option>`).join('');
+      pessoa.innerHTML = pessoasDisponiveis().map(n => `<option value="${n}">${escaparHtml(configEquipe[n].nome)}${configEquipe[n].setor ? ` — ${escaparHtml(configEquipe[n].setor)}` : ''}${PLANTONISTAS_REMOTOS_IDS.includes(n) ? ' • remoto 24h' : ''}</option>`).join('');
       if ([...pessoa.options].some(o => o.value === selecionada)) pessoa.value = selecionada;
     }
     preencherPessoas();
@@ -402,6 +624,7 @@
       const identificacao = `${cfg?.nome||pessoa.value}${cfg?.setor ? ` — ${cfg.setor}` : ''}`;
       textoResultado.textContent = cadastro ? `${identificacao} • ${horario||cadastro.escala} • ${dataLonga}` : `${identificacao} • ${horario||'Horário não informado'} • ${dataLonga}`;
       carregarAnotacao();
+      mostrarRemotoData(isoLocal(data));
     }
     function renderizar() {
       const chave = chaveMes(mesVisivel), bloco = ESCALA[chave];
@@ -415,12 +638,14 @@
         const classe = codigo==='P'?'p':codigo==='F'?'f':codigo==='FÉRIAS'?'ferias':'';
         const selecionado = dataInput.value===isoLocal(dt)?'selecionado':'';
         const chaveData = isoLocal(dt), textoAnotado = textoDaAnotacao(chaveData), temAnotacao = Boolean(textoAnotado), aniversario = ehAniversario(textoAnotado), natal = chaveDiaMes(chaveData)==='12-25';
+        const plantaoRemoto=periodoRemotoDaData(chaveData), nomeRemoto=plantaoRemoto ? nomePlantonistaRemoto(plantaoRemoto.pessoaId) : '';
         const marca = temAnotacao && !aniversario ? `<span class="marca-anotacao" title="${escaparHtml(textoAnotado)}">📝</span>` : '';
         const balaoAniversario = aniversario ? `<span class="balao-aniversario" title="${escaparHtml(textoAnotado)}">${escaparHtml(textoAnotado)}</span>` : '';
         const seloFeriado = feriado ? `<span class="selo-feriado" title="${escaparHtml(feriado)}">${natal ? '🎄 NATAL' : 'FERIADO'}</span>` : '';
+        const avisoRemoto = plantaoRemoto ? `<span class="plantao-remoto-badge" title="Plantão remoto 24h: ${escaparHtml(nomeRemoto)}">📡 ${escaparHtml(nomeRemoto)}</span>` : '';
         const avisoFerias = nomesFerias.length ? `<span class="ferias-nomes" title="Férias: ${escaparHtml(nomesFerias.join(', '))}">Férias: ${escaparHtml(nomesFerias.join(', '))}</span>` : '';
         const codigoHtml = codigo ? `<span class="codigo">${codigo}</span>` : '';
-        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
+        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Remoto 24h: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
       }
       if (bloco?.observacoes.length) {
         observacoes.hidden=false;
@@ -434,8 +659,8 @@
     dataInput.addEventListener('change',()=>{ if(!dataInput.value)return; const [a,m]=dataInput.value.split('-').map(Number); mesVisivel=new Date(a,m-1,1); renderizar(); });
     pessoa.addEventListener('change',renderizar);
     function linhaConfiguracao(id,c={}) {
-      const carga = c.cargaHoraria || 'mesma';
-      return `<div class="config-grid" data-id="${id}"><div><label>NOME</label><input class="cfg-nome" value="${escaparHtml(c.nome||'')}" placeholder="Nome do colaborador"></div><div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}" placeholder="Ex.: Escriturária UTI Adulto"></div><div><label>TIPO DE ESCALA</label><select class="cfg-carga"><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div><div><label>SEGUNDA A SEXTA</label><input class="cfg-semana" value="${escaparHtml(c.semana||'06:30 às 12:30')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><button class="remover-colaborador" type="button">Remover</button></div>`;
+      const carga = c.cargaHoraria || 'mesma', ehEquipeRemota=PLANTONISTAS_REMOTOS_IDS.includes(id);
+      return `<div class="config-grid" data-id="${id}"><div><label>NOME${ehEquipeRemota ? ' • EQUIPE REMOTO 24H' : ''}</label><input class="cfg-nome" value="${escaparHtml(c.nome||'')}" placeholder="Nome do colaborador"></div><div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}" placeholder="Ex.: Escriturária UTI Adulto"></div><div><label>TIPO DE ESCALA</label><select class="cfg-carga"><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div><div><label>SEGUNDA A SEXTA</label><input class="cfg-semana" value="${escaparHtml(c.semana||'06:30 às 12:30')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><button class="remover-colaborador" type="button" ${ehEquipeRemota ? 'disabled title="Integrante fixo da equipe de plantão remoto"' : ''}>${ehEquipeRemota ? 'Equipe remoto 24h' : 'Remover'}</button></div>`;
     }
     function abrirConfiguracoes() {
       configLinhas.innerHTML = pessoasDisponiveis().map(id=>linhaConfiguracao(id,configEquipe[id])).join('');
@@ -462,9 +687,71 @@
       configLinhas.querySelectorAll('[data-id]').forEach(linha=>{const id=linha.dataset.id,cadastroAnterior=configEquipe[id]||{}; const nome=linha.querySelector('.cfg-nome').value.trim(); if(!nome)return; novaEquipe[id]={nome,setor:linha.querySelector('.cfg-setor').value.trim(),cargaHoraria:linha.querySelector('.cfg-carga').value,semana:linha.querySelector('.cfg-semana').value.trim(),sabado:linha.querySelector('.cfg-sabado').value.trim(),domingo:linha.querySelector('.cfg-domingo').value.trim(),feriasPeriodos:Array.isArray(cadastroAnterior.feriasPeriodos)?cadastroAnterior.feriasPeriodos:[]};});
       if(!Object.keys(novaEquipe).length) return alert('Informe o nome de pelo menos um colaborador.');
       configEquipe=novaEquipe;
+      garantirPlantonistasRemotosNaEquipe();
       localStorage.setItem(CHAVE_EQUIPE,JSON.stringify(configEquipe));
       await salvarDadosOnline();
-      preencherPessoas(selecionada); configuracoes.hidden=true; renderizar();
+      preencherPessoas(selecionada); preencherPessoasRemotas(); atualizarResumoRemoto(); configuracoes.hidden=true; renderizar();
+    });
+    document.querySelector('#btnRemoto').addEventListener('click',()=>{
+      preencherPessoasRemotas();
+      renderizarListaRemoto();
+      painelRemoto.hidden=false;
+      painelFerias.hidden=true;
+      configuracoes.hidden=true;
+      painelRemoto.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+    document.querySelector('#btnCancelarRemoto').addEventListener('click',()=>{
+      limparFormularioRemoto();
+      painelRemoto.hidden=true;
+    });
+    document.querySelector('#btnSalvarRemoto').addEventListener('click',async()=>{
+      const pessoaId=remotoPessoa.value, inicio=remotoInicio.value, fim=remotoFim.value, observacao=remotoObservacao.value.trim();
+      if (!pessoaId || !inicio || !fim) return alert('Informe o plantonista, a data de início e a data final.');
+      if (fim<inicio) return alert('A data final não pode ser anterior à data de início.');
+      const conflito=plantoesRemotos.find(p=>p.id!==remotoEditandoId && inicio<=p.fim && fim>=p.inicio);
+      if (conflito) return alert(`Já existe plantão remoto de ${nomePlantonistaRemoto(conflito.pessoaId)} entre ${formatarDataIso(conflito.inicio)} e ${formatarDataIso(conflito.fim)}.`);
+      if (remotoEditandoId) {
+        const indice=plantoesRemotos.findIndex(p=>p.id===remotoEditandoId);
+        if (indice>=0) plantoesRemotos[indice]={...plantoesRemotos[indice],pessoaId,inicio,fim,observacao};
+      } else {
+        plantoesRemotos.push({id:`rem-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,pessoaId,inicio,fim,observacao});
+      }
+      plantoesRemotos=ordenarPlantoesRemotos();
+      plantoesRemotosInicializados=true;
+      persistirPlantoesRemotos();
+      const salvou=await salvarDadosOnline();
+      renderizarListaRemoto();
+      atualizarResumoRemoto();
+      renderizar();
+      if (salvou) limparFormularioRemoto();
+    });
+    remotoLista.addEventListener('click',async e=>{
+      const editar=e.target.closest('[data-editar-remoto]'), excluir=e.target.closest('[data-excluir-remoto]');
+      if (editar) {
+        const periodo=plantoesRemotos.find(p=>p.id===editar.dataset.editarRemoto);
+        if (!periodo) return;
+        remotoEditandoId=periodo.id;
+        remotoPessoa.value=periodo.pessoaId;
+        remotoInicio.value=periodo.inicio;
+        remotoFim.value=periodo.fim;
+        remotoObservacao.value=periodo.observacao||'';
+        document.querySelector('#btnSalvarRemoto').textContent='Salvar alteração';
+        remotoPessoa.focus();
+        return;
+      }
+      if (excluir) {
+        const periodo=plantoesRemotos.find(p=>p.id===excluir.dataset.excluirRemoto);
+        if (!periodo) return;
+        if (!confirm(`Excluir o período de ${nomePlantonistaRemoto(periodo.pessoaId)}, de ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}?`)) return;
+        plantoesRemotos=plantoesRemotos.filter(p=>p.id!==periodo.id);
+        plantoesRemotosInicializados=true;
+        persistirPlantoesRemotos();
+        await salvarDadosOnline();
+        if (remotoEditandoId===periodo.id) limparFormularioRemoto();
+        renderizarListaRemoto();
+        atualizarResumoRemoto();
+        renderizar();
+      }
     });
     document.querySelector('#btnFerias').addEventListener('click',()=>{
       preencherFeriasPessoa();
@@ -532,6 +819,9 @@
     document.querySelector('#btnHoje').addEventListener('click',()=>{ const alvo=dentroDaBase(hoje)?hoje:new Date(Number(primeira.slice(0,4)),Number(primeira.slice(5))-1,1); dataInput.value=isoLocal(alvo); mesVisivel=new Date(alvo.getFullYear(),alvo.getMonth(),1); renderizar(); });
     document.querySelector('#anterior').addEventListener('click',()=>{ mesVisivel=new Date(mesVisivel.getFullYear(),mesVisivel.getMonth()-1,1); renderizar(); });
     document.querySelector('#proximo').addEventListener('click',()=>{ mesVisivel=new Date(mesVisivel.getFullYear(),mesVisivel.getMonth()+1,1); renderizar(); });
+    preencherPessoasRemotas();
+    renderizarListaRemoto();
+    atualizarResumoRemoto();
     renderizar();
     carregarDadosOnline();
   </script>
