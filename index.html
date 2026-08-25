@@ -150,6 +150,136 @@
       .dia.tem-remoto.aniversario { min-height:132px; }
       .dia.tem-remoto.aniversario .plantao-remoto-badge { top:57px; }
     }
+  
+    /* =========================================================
+       Empilhamento dos avisos do calendário
+       Ordem:
+       1. Aniversário
+       2. Plantão remoto
+       3. Férias
+       O quadrinho cresce conforme a quantidade de avisos.
+       ========================================================= */
+
+    .dia {
+      min-height:104px;
+      overflow:visible;
+    }
+
+    /* Primeiro aviso da pilha */
+    .balao-aniversario {
+      top:31px;
+      left:5px;
+      right:5px;
+    }
+
+    .plantao-remoto-badge {
+      top:31px;
+      left:5px;
+      right:5px;
+    }
+
+    .ferias-nomes {
+      top:31px;
+      bottom:auto;
+      left:6px;
+      right:6px;
+    }
+
+    /* Se houver aniversário, o remoto desce uma posição */
+    .dia.aniversario .plantao-remoto-badge {
+      top:57px;
+    }
+
+    /* Férias ficam abaixo do que já existir */
+    .dia.aniversario .ferias-nomes,
+    .dia.tem-plantao-remoto .ferias-nomes {
+      top:57px;
+    }
+
+    /* Se houver aniversário + remoto + férias, férias vão para a 3ª linha */
+    .dia.aniversario.tem-plantao-remoto .ferias-nomes {
+      top:83px;
+    }
+
+    /* Crescimento automático dos dias com avisos */
+    .dia.aniversario,
+    .dia.tem-plantao-remoto,
+    .dia.tem-ferias-equipe {
+      min-height:126px;
+    }
+
+    .dia.aniversario.tem-plantao-remoto,
+    .dia.aniversario.tem-ferias-equipe,
+    .dia.tem-plantao-remoto.tem-ferias-equipe {
+      min-height:148px;
+    }
+
+    .dia.aniversario.tem-plantao-remoto.tem-ferias-equipe {
+      min-height:174px;
+    }
+
+    /* Mantém os ícones inferiores livres da pilha */
+    .dia .codigo {
+      bottom:7px;
+    }
+
+    .dia .marca-anotacao {
+      bottom:9px;
+    }
+
+    /* Quando existir aniversário, a anotação continua oculta como já era */
+    .dia.aniversario .marca-anotacao {
+      display:none;
+    }
+
+    @media (max-width:700px) {
+      .dia {
+        min-height:94px;
+      }
+
+      .balao-aniversario,
+      .plantao-remoto-badge,
+      .ferias-nomes {
+        left:3px;
+        right:3px;
+      }
+
+      .balao-aniversario,
+      .plantao-remoto-badge,
+      .ferias-nomes {
+        top:28px;
+      }
+
+      .dia.aniversario .plantao-remoto-badge {
+        top:53px;
+      }
+
+      .dia.aniversario .ferias-nomes,
+      .dia.tem-plantao-remoto .ferias-nomes {
+        top:53px;
+      }
+
+      .dia.aniversario.tem-plantao-remoto .ferias-nomes {
+        top:78px;
+      }
+
+      .dia.aniversario,
+      .dia.tem-plantao-remoto,
+      .dia.tem-ferias-equipe {
+        min-height:118px;
+      }
+
+      .dia.aniversario.tem-plantao-remoto,
+      .dia.aniversario.tem-ferias-equipe,
+      .dia.tem-plantao-remoto.tem-ferias-equipe {
+        min-height:142px;
+      }
+
+      .dia.aniversario.tem-plantao-remoto.tem-ferias-equipe {
+        min-height:166px;
+      }
+    }
+
   </style>
 </head>
 <body>
