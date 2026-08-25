@@ -105,7 +105,7 @@
     footer { text-align:center; color:var(--cinza); padding:22px 10px 0; font-size:.78rem; }
     @media (max-width:700px) { .filtros,.config-grid,.ferias-grid,.anotacao-linha{grid-template-columns:1fr}.hoje,.configurar,.ferias-botao,.anotacao-linha button{width:100%}.painel{padding:15px}.calendario{gap:4px}.dia{min-height:72px;padding:6px}.dia.aniversario{min-height:96px}.semana{font-size:.66rem}.dia .numero{top:7px;left:7px}.dia .codigo{right:4px;bottom:4px;height:23px;min-width:23px}.dia .marca-anotacao{left:4px;bottom:7px}.ferias-nomes{left:4px;right:4px;bottom:32px}.balao-aniversario{top:29px;left:4px;right:4px}.ferias-item{align-items:flex-start;flex-direction:column}.ferias-item button{width:100%}.resultado{padding:15px} }
 
-    /* Plantão remoto 24h */
+    /* Plantão remoto */
     .remoto-resumo { margin:16px 0 4px; padding:14px 16px; border:1px solid #cbb9f1; border-radius:14px; background:linear-gradient(135deg,#faf7ff,#f1f7ff); display:flex; align-items:center; justify-content:space-between; gap:14px; }
     .remoto-resumo .rotulo { display:block; color:#5b2aa8; font-size:.8rem; font-weight:900; letter-spacing:.04em; }
     .remoto-resumo .atual { margin-top:3px; color:#34214f; font-size:1.02rem; font-weight:850; }
@@ -126,11 +126,13 @@
     .remoto-vazio { margin:0; padding:10px 0; color:var(--cinza); font-size:.86rem; }
     .remoto-data { margin:-8px 0 20px; padding:11px 14px; border-left:4px solid #6b3db8; border-radius:9px; background:#f7f2ff; color:#433855; font-size:.88rem; }
     .remoto-data strong { color:#5b2aa8; }
-    .plantao-remoto-badge { position:absolute; z-index:3; left:5px; right:5px; top:31px; padding:3px 5px; border-radius:7px; background:#6b3db8; color:#fff; font-size:.57rem; font-weight:900; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 2px 6px rgba(61,35,108,.22); }
+    .plantao-remoto-badge { position:absolute; z-index:3; left:5px; right:5px; top:31px; padding:3px 5px; border-radius:7px; color:#fff; font-size:.57rem; font-weight:900; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .plantao-remoto-badge.remoto-verde-1 { background:#2f7d4a; box-shadow:0 2px 6px rgba(47,125,74,.24); }
+    .plantao-remoto-badge.remoto-verde-2 { background:#72a985; box-shadow:0 2px 6px rgba(78,132,95,.22); }
     .dia.tem-remoto { min-height:106px; }
     .dia.tem-remoto.aniversario { min-height:128px; }
     .dia.tem-remoto.aniversario .plantao-remoto-badge { top:58px; }
-    .legenda .legenda-remoto b { background:#6b3db8; color:#fff; }
+    .legenda .legenda-remoto b { background:#2f7d4a; color:#fff; }
     .remover-colaborador:disabled { cursor:not-allowed; opacity:.62; }
     @media (max-width:700px) {
       .remoto-resumo { align-items:flex-start; flex-direction:column; }
@@ -159,14 +161,14 @@
       </div>
       <section class="remoto-resumo" id="remotoResumo">
         <div>
-          <span class="rotulo">📡 PLANTÃO REMOTO 24H</span>
+          <span class="rotulo">📡 PLANTÃO REMOTO</span>
           <div class="atual" id="remotoAtual">Carregando...</div>
           <div class="proximo" id="remotoProximo"></div>
         </div>
         <button class="remoto-botao" id="btnRemoto" type="button">Gerenciar plantão remoto</button>
       </section>
       <section class="remoto-painel" id="painelRemoto" hidden>
-        <h2>Gerenciar plantão remoto 24h</h2>
+        <h2>Gerenciar plantão remoto</h2>
         <p>Cadastre os períodos livremente. As trocas não precisam acontecer nos dias 1 e 15.</p>
         <div class="remoto-grid">
           <div><label for="remotoPessoa">PLANTONISTA</label><select id="remotoPessoa"></select></div>
@@ -211,7 +213,7 @@
       <div class="topo-calendario"><h2 id="tituloMes"></h2><div class="navegacao"><button id="anterior" title="Mês anterior">‹</button><button id="proximo" title="Próximo mês">›</button></div></div>
       <div class="calendario" id="calendario"></div>
       <div class="observacoes" id="observacoes" hidden></div>
-      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span class="legenda-remoto"><b>R</b>Remoto 24h</span></div>
+      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span class="legenda-remoto"><b>R</b>Plantão remoto</span></div>
     </section>
     <footer>Escala de plantão da equipe</footer>
   </main>
@@ -422,6 +424,16 @@
     function nomePlantonistaRemoto(id) {
       return configEquipe[id]?.nome || ({GUILHERME:'Guilherme',MARCELO:'Marcelo',JOAO:'João',GABRIEL:'Gabriel'}[id] || id);
     }
+    function classeCorPlantonistaRemoto(pessoaId) {
+      const cores={
+        GUILHERME:'remoto-verde-1',
+        MARCELO:'remoto-verde-2',
+        JOAO:'remoto-verde-1',
+        GABRIEL:'remoto-verde-2'
+      };
+      return cores[pessoaId] || 'remoto-verde-1';
+    }
+
     function formatarDataIso(iso) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||''))) return '';
       const [a,m,d]=iso.split('-').map(Number);
@@ -458,7 +470,7 @@
         return;
       }
       remotoData.hidden=false;
-      remotoData.innerHTML=`📡 <strong>Plantão remoto 24h:</strong> ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))} • ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}${periodo.observacao ? ` • ${escaparHtml(periodo.observacao)}` : ''}`;
+      remotoData.innerHTML=`📡 <strong>Plantão remoto:</strong> ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))} • ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}${periodo.observacao ? ` • ${escaparHtml(periodo.observacao)}` : ''}`;
     }
     function renderizarListaRemoto() {
       if (!remotoLista) return;
@@ -467,7 +479,7 @@
         <div class="remoto-item">
           <div>
             <div class="nome">📡 ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))}</div>
-            <div class="datas">${formatarDataIso(periodo.inicio)} até ${formatarDataIso(periodo.fim)} • 24h remoto</div>
+            <div class="datas">${formatarDataIso(periodo.inicio)} até ${formatarDataIso(periodo.fim)} • Plantão remoto</div>
             ${periodo.observacao ? `<div class="obs">${escaparHtml(periodo.observacao)}</div>` : ''}
           </div>
           <div class="acoes">
@@ -506,7 +518,7 @@
       return Object.keys(configEquipe).sort((a,b) => (configEquipe[a].nome || a).localeCompare(configEquipe[b].nome || b,'pt-BR'));
     }
     function preencherPessoas(selecionada='FLAVIANA') {
-      pessoa.innerHTML = pessoasDisponiveis().map(n => `<option value="${n}">${escaparHtml(configEquipe[n].nome)}${configEquipe[n].setor ? ` — ${escaparHtml(configEquipe[n].setor)}` : ''}${PLANTONISTAS_REMOTOS_IDS.includes(n) ? ' • remoto 24h' : ''}</option>`).join('');
+      pessoa.innerHTML = pessoasDisponiveis().map(n => `<option value="${n}">${escaparHtml(configEquipe[n].nome)}${configEquipe[n].setor ? ` — ${escaparHtml(configEquipe[n].setor)}` : ''}${PLANTONISTAS_REMOTOS_IDS.includes(n) ? ' • Plantão remoto' : ''}</option>`).join('');
       if ([...pessoa.options].some(o => o.value === selecionada)) pessoa.value = selecionada;
     }
     preencherPessoas();
@@ -642,10 +654,10 @@
         const marca = temAnotacao && !aniversario ? `<span class="marca-anotacao" title="${escaparHtml(textoAnotado)}">📝</span>` : '';
         const balaoAniversario = aniversario ? `<span class="balao-aniversario" title="${escaparHtml(textoAnotado)}">${escaparHtml(textoAnotado)}</span>` : '';
         const seloFeriado = feriado ? `<span class="selo-feriado" title="${escaparHtml(feriado)}">${natal ? '🎄 NATAL' : 'FERIADO'}</span>` : '';
-        const avisoRemoto = plantaoRemoto ? `<span class="plantao-remoto-badge" title="Plantão remoto 24h: ${escaparHtml(nomeRemoto)}">📡 ${escaparHtml(nomeRemoto)}</span>` : '';
+        const avisoRemoto = plantaoRemoto ? `<span class="plantao-remoto-badge ${classeCorPlantonistaRemoto(plantaoRemoto.pessoaId)}" title="Plantão remoto: ${escaparHtml(nomeRemoto)}">📡 ${escaparHtml(nomeRemoto)}</span>` : '';
         const avisoFerias = nomesFerias.length ? `<span class="ferias-nomes" title="Férias: ${escaparHtml(nomesFerias.join(', '))}">Férias: ${escaparHtml(nomesFerias.join(', '))}</span>` : '';
         const codigoHtml = codigo ? `<span class="codigo">${codigo}</span>` : '';
-        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Remoto 24h: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
+        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
       }
       if (bloco?.observacoes.length) {
         observacoes.hidden=false;
@@ -660,7 +672,7 @@
     pessoa.addEventListener('change',renderizar);
     function linhaConfiguracao(id,c={}) {
       const carga = c.cargaHoraria || 'mesma', ehEquipeRemota=PLANTONISTAS_REMOTOS_IDS.includes(id);
-      return `<div class="config-grid" data-id="${id}"><div><label>NOME${ehEquipeRemota ? ' • EQUIPE REMOTO 24H' : ''}</label><input class="cfg-nome" value="${escaparHtml(c.nome||'')}" placeholder="Nome do colaborador"></div><div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}" placeholder="Ex.: Escriturária UTI Adulto"></div><div><label>TIPO DE ESCALA</label><select class="cfg-carga"><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div><div><label>SEGUNDA A SEXTA</label><input class="cfg-semana" value="${escaparHtml(c.semana||'06:30 às 12:30')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><button class="remover-colaborador" type="button" ${ehEquipeRemota ? 'disabled title="Integrante fixo da equipe de plantão remoto"' : ''}>${ehEquipeRemota ? 'Equipe remoto 24h' : 'Remover'}</button></div>`;
+      return `<div class="config-grid" data-id="${id}"><div><label>NOME${ehEquipeRemota ? ' • EQUIPE REMOTO' : ''}</label><input class="cfg-nome" value="${escaparHtml(c.nome||'')}" placeholder="Nome do colaborador"></div><div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}" placeholder="Ex.: Escriturária UTI Adulto"></div><div><label>TIPO DE ESCALA</label><select class="cfg-carga"><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div><div><label>SEGUNDA A SEXTA</label><input class="cfg-semana" value="${escaparHtml(c.semana||'06:30 às 12:30')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div><button class="remover-colaborador" type="button" ${ehEquipeRemota ? 'disabled title="Integrante fixo da equipe de plantão remoto"' : ''}>${ehEquipeRemota ? 'Equipe remoto' : 'Remover'}</button></div>`;
     }
     function abrirConfiguracoes() {
       configLinhas.innerHTML = pessoasDisponiveis().map(id=>linhaConfiguracao(id,configEquipe[id])).join('');
