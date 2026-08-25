@@ -37,9 +37,9 @@
     .adicionar { background:#e6f3ec; color:var(--verde); padding:0 18px; }
     .remover-colaborador { background:#fbe6e4; color:#a12d23; padding:0 14px; }
     .config-linha-acoes { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .cfg-remoto-opcao { margin:0; min-height:45px; display:flex; align-items:center; gap:9px; padding:0 14px; border:1px solid #cbb9f1; border-radius:10px; background:#faf7ff; color:#5b2aa8; cursor:pointer; font-size:.86rem; font-weight:800; }
-    .cfg-remoto-opcao input { width:18px; min-height:18px; height:18px; margin:0; accent-color:#6b3db8; }
-    .cfg-remoto-opcao.ativo { background:#f1eafd; border-color:#a88bdc; }
+    .cfg-remoto-toggle { min-height:45px; padding:0 16px; border:1px solid #b9a4e7; border-radius:10px; background:#f4effd; color:#5b2aa8; font-weight:800; }
+    .cfg-remoto-toggle.ativo { border-color:#87b99a; background:#e9f6ee; color:#23643b; }
+    .cfg-remoto-toggle:hover { filter:brightness(.98); }
     .config-acoes { display:flex; justify-content:flex-end; gap:9px; margin-top:14px; }
     .cancelar { background:#e8eeeb; color:var(--texto); padding:0 18px; }
     .salvar { background:var(--verde); color:white; padding:0 18px; }
@@ -107,7 +107,7 @@
     .legenda { display:flex; flex-wrap:wrap; gap:8px 15px; margin-top:18px; color:var(--cinza); font-size:.82rem; }
     .legenda span b { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:7px; margin-right:5px; background:#edf1ef; color:var(--texto); }
     footer { text-align:center; color:var(--cinza); padding:22px 10px 0; font-size:.78rem; }
-    @media (max-width:700px) { .filtros,.config-grid,.ferias-grid,.anotacao-linha{grid-template-columns:1fr}.hoje,.configurar,.ferias-botao,.anotacao-linha button{width:100%}.painel{padding:15px}.calendario{gap:4px}.dia{min-height:72px;padding:6px}.dia.aniversario{min-height:96px}.semana{font-size:.66rem}.dia .numero{top:7px;left:7px}.dia .codigo{right:4px;bottom:4px;height:23px;min-width:23px}.dia .marca-anotacao{left:4px;bottom:7px}.ferias-nomes{left:4px;right:4px;bottom:32px}.balao-aniversario{top:29px;left:4px;right:4px}.ferias-item{align-items:flex-start;flex-direction:column}.ferias-item button{width:100%}.config-linha-acoes{align-items:stretch;flex-direction:column}.config-linha-acoes .remover-colaborador{width:100%}.cfg-remoto-opcao{width:100%}.resultado{padding:15px} }
+    @media (max-width:700px) { .filtros,.config-grid,.ferias-grid,.anotacao-linha{grid-template-columns:1fr}.hoje,.configurar,.ferias-botao,.anotacao-linha button{width:100%}.painel{padding:15px}.calendario{gap:4px}.dia{min-height:72px;padding:6px}.dia.aniversario{min-height:96px}.semana{font-size:.66rem}.dia .numero{top:7px;left:7px}.dia .codigo{right:4px;bottom:4px;height:23px;min-width:23px}.dia .marca-anotacao{left:4px;bottom:7px}.ferias-nomes{left:4px;right:4px;bottom:32px}.balao-aniversario{top:29px;left:4px;right:4px}.ferias-item{align-items:flex-start;flex-direction:column}.ferias-item button{width:100%}.config-linha-acoes{align-items:stretch;flex-direction:column}.config-linha-acoes .remover-colaborador{width:100%}.cfg-remoto-toggle{width:100%}.resultado{padding:15px} }
 
     /* Plantão remoto */
     .remoto-resumo { margin:16px 0 4px; padding:14px 16px; border:1px solid #cbb9f1; border-radius:14px; background:linear-gradient(135deg,#faf7ff,#f1f7ff); display:flex; align-items:center; justify-content:space-between; gap:14px; }
@@ -199,7 +199,7 @@
       </section>
       <section class="configuracoes" id="configuracoes" hidden>
         <h2>Editar equipe</h2>
-        <p>Altere os dados da equipe ou adicione colaboradores com plantão padrão, plantão inverso, escala de 12 horas em dias pares ou ímpares, ou escala personalizada.</p>
+        <p>Altere os dados da equipe, adicione ou remova colaboradores e escolha livremente quem participa do plantão remoto. Se alguém entrar no remoto, use o botão “Adicionar ao plantão remoto”; se sair, clique novamente para retirar.</p>
         <div id="configLinhas"></div>
         <div class="config-acoes"><button class="adicionar" id="btnAdicionarColaborador" type="button">+ Adicionar colaborador</button><button class="cancelar" id="btnCancelar" type="button">Cancelar</button><button class="salvar" id="btnSalvar" type="button">Salvar alterações</button></div>
       </section>
@@ -295,10 +295,10 @@
     catch { anotacoesDatas = {}; }
 
     const PLANTOES_REMOTOS_PADRAO = [
-      {id:'rem-20260801-guilherme',pessoaId:'GUILHERME',inicio:'2026-08-01',fim:'2026-08-14',observacao:''},
-      {id:'rem-20260815-marcelo',pessoaId:'MARCELO',inicio:'2026-08-15',fim:'2026-08-31',observacao:''},
-      {id:'rem-20260901-joao',pessoaId:'JOAO',inicio:'2026-09-01',fim:'2026-09-14',observacao:''},
-      {id:'rem-20260915-gabriel',pessoaId:'GABRIEL',inicio:'2026-09-15',fim:'2026-09-30',observacao:''}
+      {id:'rem-20260801-guilherme',pessoaId:'GUILHERME',pessoaNome:'Guilherme',inicio:'2026-08-01',fim:'2026-08-14',observacao:''},
+      {id:'rem-20260815-marcelo',pessoaId:'MARCELO',pessoaNome:'Marcelo',inicio:'2026-08-15',fim:'2026-08-31',observacao:''},
+      {id:'rem-20260901-joao',pessoaId:'JOAO',pessoaNome:'João',inicio:'2026-09-01',fim:'2026-09-14',observacao:''},
+      {id:'rem-20260915-gabriel',pessoaId:'GABRIEL',pessoaNome:'Gabriel',inicio:'2026-09-15',fim:'2026-09-30',observacao:''}
     ];
     let plantoesRemotos=[];
     let plantoesRemotosInicializados=false;
@@ -311,8 +311,14 @@
       }
       return {inicializado:false,periodos:[]};
     }
+    function normalizarPeriodosRemotos(lista=[]) {
+      return (Array.isArray(lista)?lista:[]).map(p=>({
+        ...p,
+        pessoaNome:p.pessoaNome || configEquipe[p.pessoaId]?.nome || ({GUILHERME:'Guilherme',MARCELO:'Marcelo',JOAO:'João',GABRIEL:'Gabriel'}[p.pessoaId] || p.pessoaId)
+      }));
+    }
     function ordenarPlantoesRemotos(lista=plantoesRemotos) {
-      return [...lista].sort((a,b)=>String(a.inicio).localeCompare(String(b.inicio)) || String(a.fim).localeCompare(String(b.fim)));
+      return normalizarPeriodosRemotos(lista).sort((a,b)=>String(a.inicio).localeCompare(String(b.inicio)) || String(a.fim).localeCompare(String(b.fim)));
     }
     function estadoRemotoParaSalvar() {
       return {inicializado:true,periodos:ordenarPlantoesRemotos()};
@@ -419,8 +425,8 @@
     function escaparHtml(valor) {
       return String(valor).replace(/[&<>"']/g, caractere => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[caractere]);
     }
-    function nomePlantonistaRemoto(id) {
-      return configEquipe[id]?.nome || ({GUILHERME:'Guilherme',MARCELO:'Marcelo',JOAO:'João',GABRIEL:'Gabriel'}[id] || id);
+    function nomePlantonistaRemoto(id,nomeHistorico='') {
+      return configEquipe[id]?.nome || nomeHistorico || ({GUILHERME:'Guilherme',MARCELO:'Marcelo',JOAO:'João',GABRIEL:'Gabriel'}[id] || id);
     }
     function classeCorPlantonistaRemoto(pessoaId) {
       const ordem=idsEquipeRemota();
@@ -444,13 +450,23 @@
     function idsEquipeRemota() {
       return pessoasDisponiveis().filter(id=>configEquipe[id]?.plantaoRemoto===true);
     }
-    function preencherPessoasRemotas() {
+    function preencherPessoasRemotas(selecionadoForcado='',nomeHistorico='') {
       if (!remotoPessoa) return;
-      const selecionado=remotoPessoa.value;
+      const selecionado=selecionadoForcado || remotoPessoa.value;
       const ids=idsEquipeRemota();
-      remotoPessoa.innerHTML=ids.length
-        ? ids.map(id=>`<option value="${id}">${escaparHtml(nomePlantonistaRemoto(id))}</option>`).join('')
+
+      let opcoes=ids.map(id=>`<option value="${id}">${escaparHtml(nomePlantonistaRemoto(id))}</option>`);
+
+      // Ao editar um período antigo, mantém o responsável anterior visível,
+      // mesmo que ele já tenha saído da equipe remota.
+      if (selecionado && !ids.includes(selecionado)) {
+        opcoes.unshift(`<option value="${escaparHtml(selecionado)}">${escaparHtml(nomePlantonistaRemoto(selecionado,nomeHistorico))} — fora da equipe remota atual</option>`);
+      }
+
+      remotoPessoa.innerHTML=opcoes.length
+        ? opcoes.join('')
         : '<option value="">Nenhum integrante remoto cadastrado</option>';
+
       if ([...remotoPessoa.options].some(o=>o.value===selecionado)) remotoPessoa.value=selecionado;
     }
     function atualizarResumoRemoto() {
@@ -458,10 +474,10 @@
       const chaveHoje=isoLocal(new Date());
       const atual=periodoRemotoDaData(chaveHoje), proximo=proximoPeriodoRemoto(chaveHoje);
       remotoAtual.textContent=atual
-        ? `${nomePlantonistaRemoto(atual.pessoaId)} • ${formatarDataIso(atual.inicio)} a ${formatarDataIso(atual.fim)}`
+        ? `${nomePlantonistaRemoto(atual.pessoaId,atual.pessoaNome)} • ${formatarDataIso(atual.inicio)} a ${formatarDataIso(atual.fim)}`
         : 'Nenhum plantonista remoto cadastrado para hoje';
       remotoProximo.textContent=proximo
-        ? `Próximo: ${nomePlantonistaRemoto(proximo.pessoaId)} • a partir de ${formatarDataIso(proximo.inicio)}`
+        ? `Próximo: ${nomePlantonistaRemoto(proximo.pessoaId,proximo.pessoaNome)} • a partir de ${formatarDataIso(proximo.inicio)}`
         : 'Sem próximo período cadastrado';
     }
     function mostrarRemotoData(chaveData) {
@@ -472,7 +488,7 @@
         return;
       }
       remotoData.hidden=false;
-      remotoData.innerHTML=`📡 <strong>Plantão remoto:</strong> ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))} • ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}${periodo.observacao ? ` • ${escaparHtml(periodo.observacao)}` : ''}`;
+      remotoData.innerHTML=`📡 <strong>Plantão remoto:</strong> ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId,periodo.pessoaNome))} • ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}${periodo.observacao ? ` • ${escaparHtml(periodo.observacao)}` : ''}`;
     }
     function renderizarListaRemoto() {
       if (!remotoLista) return;
@@ -480,7 +496,7 @@
       remotoLista.innerHTML=lista.length ? lista.map(periodo=>`
         <div class="remoto-item">
           <div>
-            <div class="nome">📡 ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId))}</div>
+            <div class="nome">📡 ${escaparHtml(nomePlantonistaRemoto(periodo.pessoaId,periodo.pessoaNome))}</div>
             <div class="datas">${formatarDataIso(periodo.inicio)} até ${formatarDataIso(periodo.fim)} • Plantão remoto</div>
             ${periodo.observacao ? `<div class="obs">${escaparHtml(periodo.observacao)}</div>` : ''}
           </div>
@@ -492,7 +508,8 @@
     }
     function limparFormularioRemoto() {
       remotoEditandoId=null;
-      if (remotoPessoa) remotoPessoa.value=PLANTONISTAS_REMOTOS_IDS[0];
+      preencherPessoasRemotas();
+      if (remotoPessoa && remotoPessoa.options.length) remotoPessoa.selectedIndex=0;
       remotoInicio.value='';
       remotoFim.value='';
       remotoObservacao.value='';
@@ -675,7 +692,7 @@
     function linhaConfiguracao(id,c={}) {
       const carga = c.cargaHoraria || 'mesma';
       const remotoMarcado = c.plantaoRemoto === true;
-      return `<div class="config-grid" data-id="${id}">
+      return `<div class="config-grid" data-id="${id}" data-remoto="${remotoMarcado ? '1' : '0'}">
         <div><label>NOME</label><input class="cfg-nome" value="${escaparHtml(c.nome||'')}" placeholder="Nome do colaborador"></div>
         <div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}" placeholder="Ex.: Escriturária UTI Adulto"></div>
         <div><label>TIPO DE ESCALA</label><select class="cfg-carga"><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div>
@@ -683,11 +700,10 @@
         <div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div>
         <div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div>
         <div class="config-linha-acoes">
-          <label class="cfg-remoto-opcao ${remotoMarcado ? 'ativo' : ''}" title="Marque para disponibilizar este colaborador no gerenciamento de Plantão remoto">
-            <input type="checkbox" class="cfg-remoto" ${remotoMarcado ? 'checked' : ''}>
-            <span>Equipe de plantão remoto</span>
-          </label>
-          <button class="remover-colaborador" type="button">Remover</button>
+          <button class="cfg-remoto-toggle ${remotoMarcado ? 'ativo' : ''}" type="button">
+            ${remotoMarcado ? '✓ Integrante do plantão remoto' : '+ Adicionar ao plantão remoto'}
+          </button>
+          <button class="remover-colaborador" type="button">Remover colaborador</button>
         </div>
       </div>`;
     }
@@ -702,12 +718,29 @@
       configLinhas.insertAdjacentHTML('beforeend',linhaConfiguracao(id));
       configLinhas.lastElementChild.querySelector('.cfg-nome').focus();
     });
-    configLinhas.addEventListener('change',e=>{
-      const checkbox=e.target.closest('.cfg-remoto');
-      if (!checkbox) return;
-      checkbox.closest('.cfg-remoto-opcao')?.classList.toggle('ativo',checkbox.checked);
-    });
     configLinhas.addEventListener('click',e=>{
+      const botaoRemoto=e.target.closest('.cfg-remoto-toggle');
+      if (botaoRemoto) {
+        const linha=botaoRemoto.closest('[data-id]');
+        const ativo=linha.dataset.remoto==='1';
+        linha.dataset.remoto=ativo?'0':'1';
+        botaoRemoto.classList.toggle('ativo',!ativo);
+        botaoRemoto.textContent=!ativo ? '✓ Integrante do plantão remoto' : '+ Adicionar ao plantão remoto';
+
+        // Ao entrar para o remoto, sugere automaticamente a jornada usada por Caio/Gabriel.
+        if (!ativo) {
+          const carga=linha.querySelector('.cfg-carga');
+          const semana=linha.querySelector('.cfg-semana');
+          const sabado=linha.querySelector('.cfg-sabado');
+          const domingo=linha.querySelector('.cfg-domingo');
+          if (carga) carga.value='8h';
+          if (semana && (!semana.value.trim() || semana.value.includes('06:30'))) semana.value='8 horas';
+          if (sabado) sabado.value='Folga';
+          if (domingo) domingo.value='Folga';
+        }
+        return;
+      }
+
       const botao=e.target.closest('.remover-colaborador');
       if (!botao) return;
       const total=configLinhas.querySelectorAll('[data-id]').length;
@@ -718,8 +751,15 @@
     document.querySelector('#btnSalvar').addEventListener('click',async()=>{
       const selecionada=pessoa.value;
       const novaEquipe={};
-      configLinhas.querySelectorAll('[data-id]').forEach(linha=>{const id=linha.dataset.id,cadastroAnterior=configEquipe[id]||{}; const nome=linha.querySelector('.cfg-nome').value.trim(); if(!nome)return; novaEquipe[id]={nome,setor:linha.querySelector('.cfg-setor').value.trim(),cargaHoraria:linha.querySelector('.cfg-carga').value,semana:linha.querySelector('.cfg-semana').value.trim(),sabado:linha.querySelector('.cfg-sabado').value.trim(),domingo:linha.querySelector('.cfg-domingo').value.trim(),plantaoRemoto:linha.querySelector('.cfg-remoto')?.checked===true,feriasPeriodos:Array.isArray(cadastroAnterior.feriasPeriodos)?cadastroAnterior.feriasPeriodos:[]};});
+      configLinhas.querySelectorAll('[data-id]').forEach(linha=>{const id=linha.dataset.id,cadastroAnterior=configEquipe[id]||{}; const nome=linha.querySelector('.cfg-nome').value.trim(); if(!nome)return; novaEquipe[id]={nome,setor:linha.querySelector('.cfg-setor').value.trim(),cargaHoraria:linha.querySelector('.cfg-carga').value,semana:linha.querySelector('.cfg-semana').value.trim(),sabado:linha.querySelector('.cfg-sabado').value.trim(),domingo:linha.querySelector('.cfg-domingo').value.trim(),plantaoRemoto:linha.dataset.remoto==='1',feriasPeriodos:Array.isArray(cadastroAnterior.feriasPeriodos)?cadastroAnterior.feriasPeriodos:[]};});
       if(!Object.keys(novaEquipe).length) return alert('Informe o nome de pelo menos um colaborador.');
+
+      // Guarda o nome atual nos períodos antes de alguém ser removido da equipe.
+      plantoesRemotos=plantoesRemotos.map(periodo=>({
+        ...periodo,
+        pessoaNome:periodo.pessoaNome || configEquipe[periodo.pessoaId]?.nome || periodo.pessoaId
+      }));
+
       configEquipe=novaEquipe;
       garantirPlantonistasRemotosNaEquipe();
       localStorage.setItem(CHAVE_EQUIPE,JSON.stringify(configEquipe));
@@ -749,7 +789,7 @@
         const indice=plantoesRemotos.findIndex(p=>p.id===remotoEditandoId);
         if (indice>=0) plantoesRemotos[indice]={...plantoesRemotos[indice],pessoaId,inicio,fim,observacao};
       } else {
-        plantoesRemotos.push({id:`rem-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,pessoaId,inicio,fim,observacao});
+        plantoesRemotos.push({id:`rem-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,pessoaId,pessoaNome:configEquipe[pessoaId]?.nome || pessoaId,inicio,fim,observacao});
       }
       plantoesRemotos=ordenarPlantoesRemotos();
       plantoesRemotosInicializados=true;
@@ -777,7 +817,7 @@
       if (excluir) {
         const periodo=plantoesRemotos.find(p=>p.id===excluir.dataset.excluirRemoto);
         if (!periodo) return;
-        if (!confirm(`Excluir o período de ${nomePlantonistaRemoto(periodo.pessoaId)}, de ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}?`)) return;
+        if (!confirm(`Excluir o período de ${nomePlantonistaRemoto(periodo.pessoaId,periodo.pessoaNome)}, de ${formatarDataIso(periodo.inicio)} a ${formatarDataIso(periodo.fim)}?`)) return;
         plantoesRemotos=plantoesRemotos.filter(p=>p.id!==periodo.id);
         plantoesRemotosInicializados=true;
         persistirPlantoesRemotos();
