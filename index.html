@@ -448,6 +448,42 @@
       }
     }
 
+  
+    /* Destaque permanente do dia atual */
+    .dia.hoje-dia {
+      border:4px solid #f0a500;
+      background:#fff8dd;
+      box-shadow:0 0 0 3px rgba(240,165,0,.22), 0 5px 14px rgba(154,97,0,.16);
+    }
+
+    .dia.hoje-dia:hover {
+      border-color:#d58b00;
+      box-shadow:0 0 0 4px rgba(240,165,0,.28), 0 8px 20px rgba(154,97,0,.22);
+    }
+
+    .dia.hoje-dia.selecionado {
+      outline:3px solid var(--verde);
+      outline-offset:2px;
+    }
+
+    /* Aniversário mantém só o balão interno, sem contorno externo */
+    .dia.aniversario.com-anotacao:not(.hoje-dia) {
+      border:1px solid var(--borda);
+      background:#fff;
+      box-shadow:none;
+    }
+
+    .dia.aniversario.com-anotacao:not(.hoje-dia):hover {
+      border-color:var(--borda);
+      box-shadow:0 7px 18px rgba(28,72,52,.11);
+    }
+
+    .dia.aniversario.com-anotacao.selecionado:not(.hoje-dia) {
+      outline:3px solid rgba(8,120,62,.25);
+      outline-offset:0;
+      border-color:var(--verde);
+    }
+
   </style>
 </head>
 <body>
@@ -975,7 +1011,7 @@
         const feriado=nomeFeriado(dt), nomesFerias=pessoasDeFerias(dt);
         const classe = codigo==='P'?'p':codigo==='F'?'f':codigo==='FÉRIAS'?'ferias':'';
         const selecionado = dataInput.value===isoLocal(dt)?'selecionado':'';
-        const chaveData = isoLocal(dt), textoAnotado = textoDaAnotacao(chaveData), temAnotacao = Boolean(textoAnotado), aniversario = ehAniversario(textoAnotado), natal = chaveDiaMes(chaveData)==='12-25';
+        const chaveData = isoLocal(dt), textoAnotado = textoDaAnotacao(chaveData), temAnotacao = Boolean(textoAnotado), aniversario = ehAniversario(textoAnotado), natal = chaveDiaMes(chaveData)==='12-25', ehHoje = chaveData===isoLocal(hoje);
         const plantaoRemoto=periodoRemotoDaData(chaveData), nomeRemoto=plantaoRemoto ? nomePlantonistaRemoto(plantaoRemoto.pessoaId) : '';
         const marca = temAnotacao && !aniversario ? `<span class="marca-anotacao" title="${escaparHtml(textoAnotado)}">📝</span>` : '';
         const balaoAniversario = aniversario ? `<span class="balao-aniversario" title="${escaparHtml(textoAnotado)}">${escaparHtml(textoAnotado)}</span>` : '';
@@ -983,7 +1019,7 @@
         const avisoRemoto = plantaoRemoto ? `<span class="plantao-remoto-badge ${classeCorPeriodoRemoto(plantaoRemoto,chaveData)}" title="Plantão remoto: ${escaparHtml(nomeRemoto)}">📡 ${escaparHtml(nomeRemoto)}</span>` : '';
         const avisoFerias = nomesFerias.length ? `<span class="ferias-nomes" title="Férias: ${escaparHtml(nomesFerias.join(', '))}">Férias: ${escaparHtml(nomesFerias.join(', '))}</span>` : '';
         const codigoHtml = codigo ? `<span class="codigo">${codigo}</span>` : '';
-        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
+        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''} ${ehHoje ? 'hoje-dia' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
       }
       if (bloco?.observacoes.length) {
         observacoes.hidden=false;
