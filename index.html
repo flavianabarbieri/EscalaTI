@@ -484,12 +484,22 @@
       border-color:var(--verde);
     }
 
+    /* Estado da sincronização online */
+    .aviso-conexao { margin:0 0 16px; padding:13px 16px; border:1px solid #f3c17d; border-radius:12px; background:#fff8e9; color:#764509; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .aviso-conexao strong { display:block; margin-bottom:4px; }
+    .aviso-conexao p { margin:0; font-size:.87rem; }
+    .aviso-conexao button { background:#fff; border:1px solid #e3b36e; color:#764509; min-height:36px; }
+    .aviso-conexao[hidden] { display:none; }
   </style>
 </head>
 <body>
   <header><div class="wrap"><h1>Consulta de escala</h1><p>Selecione seu nome e uma data para consultar a programação.</p></div></header>
   <main>
     <section class="painel">
+      <div id="avisoConexao" class="aviso-conexao" role="status" aria-live="polite" hidden>
+        <div><strong id="tituloConexao">Sincronização indisponível</strong><p id="textoConexao">Os dados podem estar desatualizados.</p></div>
+        <button id="btnTentarConexao" type="button">Tentar novamente</button>
+      </div>
       <div class="filtros">
         <div><label for="pessoa">COLABORADOR</label><select id="pessoa"></select></div>
         <div><label for="data">DATA</label><input id="data" type="date"></div>
@@ -677,7 +687,43 @@
       if (prefer) cabecalhos.Prefer = prefer;
       return cabecalhos;
     }
+    // Somente permite alterações após uma leitura bem-sucedida do banco.
+    // Nunca faz upload automático de dados locais após uma reconexão.
+    let sincronizacaoPronta=false;
+    let carregamentoEmAndamento=false;
+    let gravacaoEmAndamento=false;
+    let alteracoesPendentes=false;
+    const avisoConexao=document.querySelector('#avisoConexao');
+    const tituloConexao=document.querySelector('#tituloConexao');
+    const textoConexao=document.querySelector('#textoConexao');
+    const comandosEdicao=['btnConfigurar','btnFerias','btnRemoto','btnSalvar','btnSalvarFerias','btnSalvarRemoto','btnSalvarAnotacao','btnExcluirAnotacao'];
+    function atualizarEstadoConexao(ativo, mensagem='') {
+      sincronizacaoPronta=ativo;
+      avisoConexao.hidden=ativo;
+      tituloConexao.textContent='Não foi possível sincronizar a escala';
+      textoConexao.textContent=mensagem || 'A conexão com o servidor está indisponível. As informações exibidas podem estar desatualizadas. Nova tentativa automática em até 60 segundos.';
+      comandosEdicao.forEach(id=>{
+        const botao=document.getElementById(id);
+        if(botao) botao.disabled=!ativo;
+      });
+      // Botões de remoção gerados dinamicamente também ficam bloqueados.
+      document.querySelectorAll('[data-remover-ferias],[data-excluir-remoto]').forEach(b=>b.disabled=!ativo);
+    }
+    function exigirSincronizacao() {
+      if(sincronizacaoPronta) return true;
+      alert('A sincronização está indisponível. Para proteger os dados compartilhados, a edição fica bloqueada até a conexão voltar.');
+      return false;
+    }
+    // Ao carregar inicialmente, o site já mostra dados locais, mas não permite editar
+    // até confirmar que a versão online foi obtida.
+    atualizarEstadoConexao(false,'Verificando a conexão com o servidor. As edições estarão disponíveis quando a sincronização for confirmada.');
+
     async function salvarDadosOnline(silencioso=false) {
+      if (!sincronizacaoPronta || gravacaoEmAndamento) {
+        if(!silencioso) alert('Não foi possível salvar agora. Aguarde a sincronização e tente novamente.');
+        return false;
+      }
+      gravacaoEmAndamento=true;
       try {
         const payload={
           id: ID_ESCALA_ONLINE,
@@ -691,27 +737,36 @@
           headers: cabecalhosSupabase('resolution=merge-duplicates,return=minimal'),
           body: JSON.stringify(payload)
         });
-        if (!resposta.ok) throw new Error(await resposta.text());
+        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}: ${await resposta.text()}`);
         return true;
       } catch (erro) {
         console.error('Falha ao sincronizar a escala da TI:', erro);
-        if (!silencioso) alert('A alteração ficou salva neste aparelho, mas não foi possível sincronizá-la agora. Verifique a internet e tente salvar novamente.');
+        alteracoesPendentes=true;
+        atualizarEstadoConexao(false,'A última alteração não foi enviada. Ela permanece apenas neste navegador. Para evitar sobrescritas, a atualização automática está suspensa. Antes de recarregar, confira as informações não sincronizadas.');
+        if (!silencioso) alert('A conexão falhou. A alteração ficou apenas neste navegador. Confira-a antes de recarregar a página; ela não será enviada automaticamente.');
         return false;
-      }
+      } finally { gravacaoEmAndamento=false; }
     }
     async function carregarDadosOnline() {
+      if(alteracoesPendentes) {
+        atualizarEstadoConexao(false,'Há uma alteração não sincronizada neste navegador. A reconexão automática está suspensa para evitar perda ou substituição de dados. Confira a alteração antes de recarregar.');
+        return;
+      }
+      if(carregamentoEmAndamento || gravacaoEmAndamento) return;
+      carregamentoEmAndamento=true;
       try {
         const resposta = await fetch(`${URL_DADOS_ONLINE}?id=eq.${encodeURIComponent(ID_ESCALA_ONLINE)}&select=equipe,anotacoes,plantoes_remotos`, {
-          headers: cabecalhosSupabase()
+          headers: cabecalhosSupabase(), cache:'no-store'
         });
-        if (!resposta.ok) throw new Error(await resposta.text());
-        const [registro] = await resposta.json();
+        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}: ${await resposta.text()}`);
+        const registros=await resposta.json();
+        if (!Array.isArray(registros)) throw new Error('Resposta inesperada da API');
+        const registro=registros[0];
         let precisaInicializarRemotoOnline=false;
         if (registro) {
           if (registro.equipe && Object.keys(registro.equipe).length) configEquipe = normalizarEquipe(registro.equipe);
           garantirPlantonistasRemotosNaEquipe();
           anotacoesDatas = registro.anotacoes || {};
-
           const estadoOnline=normalizarEstadoRemoto(registro.plantoes_remotos);
           if (estadoOnline.inicializado) {
             plantoesRemotos=ordenarPlantoesRemotos(estadoOnline.periodos);
@@ -721,40 +776,41 @@
             plantoesRemotosInicializados=true;
             precisaInicializarRemotoOnline=true;
           }
-
           localStorage.setItem(CHAVE_EQUIPE, JSON.stringify(configEquipe));
           localStorage.setItem(CHAVE_ANOTACOES, JSON.stringify(anotacoesDatas));
           if (plantoesRemotosInicializados) persistirPlantoesRemotos();
-
-          preencherPessoas(pessoa.value);
-          preencherPessoasRemotas();
-          renderizarListaRemoto();
-          atualizarResumoRemoto();
-          renderizar();
-
-          if (precisaInicializarRemotoOnline) await salvarDadosOnline(true);
         } else {
-          garantirPlantonistasRemotosNaEquipe();
-          if (!plantoesRemotosInicializados) {
-            plantoesRemotos=structuredClone(PLANTOES_REMOTOS_PADRAO);
-            plantoesRemotosInicializados=true;
-            persistirPlantoesRemotos();
-          }
-          await salvarDadosOnline(true);
+          // Não recria dados automaticamente em uma tabela vazia.
+          // A página permanece consultável com os dados locais, sem sobrescrever o banco.
+          throw new Error('Registro da Escala TI não encontrado no banco');
+        }
+        preencherPessoas(pessoa.value);
+        preencherPessoasRemotas();
+        renderizarListaRemoto();
+        atualizarResumoRemoto();
+        renderizar();
+        atualizarEstadoConexao(true);
+        if (precisaInicializarRemotoOnline) {
+          // Não envia o estado completo apenas para inicializar plantões.
+          console.info('Plantões padrão disponíveis localmente; sem gravação automática.');
         }
       } catch (erro) {
         console.error('Falha ao carregar a escala da TI:', erro);
+        atualizarEstadoConexao(false);
         if (!plantoesRemotosInicializados) {
           plantoesRemotos=structuredClone(PLANTOES_REMOTOS_PADRAO);
           plantoesRemotosInicializados=true;
-          persistirPlantoesRemotos();
+          // Não persiste padrões de fallback no armazenamento local.
         }
         preencherPessoasRemotas();
         renderizarListaRemoto();
         atualizarResumoRemoto();
         renderizar();
-      }
+      } finally { carregamentoEmAndamento=false; }
     }
+    document.querySelector('#btnTentarConexao').addEventListener('click',carregarDadosOnline);
+    setInterval(()=>{ if(!sincronizacaoPronta && !document.hidden) carregarDadosOnline(); },60000);
+    window.addEventListener('online',()=>{ if(!sincronizacaoPronta) carregarDadosOnline(); });
 
     function escaparHtml(valor) {
       return String(valor).replace(/[&<>"']/g, caractere => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[caractere]);
@@ -1092,6 +1148,7 @@
     });
     document.querySelector('#btnCancelar').addEventListener('click',()=>configuracoes.hidden=true);
     document.querySelector('#btnSalvar').addEventListener('click',async()=>{
+      if (!exigirSincronizacao()) return;
       const selecionada=pessoa.value;
       const novaEquipe={};
       configLinhas.querySelectorAll('[data-id]').forEach(linha=>{const id=linha.dataset.id,cadastroAnterior=configEquipe[id]||{}; const nome=linha.querySelector('.cfg-nome').value.trim(); if(!nome)return; novaEquipe[id]={nome,setor:linha.querySelector('.cfg-setor').value.trim(),cargaHoraria:linha.querySelector('.cfg-carga').value,semana:linha.querySelector('.cfg-semana').value.trim(),sabado:linha.querySelector('.cfg-sabado').value.trim(),domingo:linha.querySelector('.cfg-domingo').value.trim(),plantaoRemoto:linha.dataset.remoto==='1',feriasPeriodos:Array.isArray(cadastroAnterior.feriasPeriodos)?cadastroAnterior.feriasPeriodos:[]};});
@@ -1122,6 +1179,7 @@
       painelRemoto.hidden=true;
     });
     document.querySelector('#btnSalvarRemoto').addEventListener('click',async()=>{
+      if (!exigirSincronizacao()) return;
       const pessoaId=remotoPessoa.value, inicio=remotoInicio.value, fim=remotoFim.value, observacao=remotoObservacao.value.trim();
       if (!pessoaId) return alert('Marque pelo menos um colaborador como Equipe de plantão remoto em Editar equipe.');
       if (!inicio || !fim) return alert('Informe a data de início e a data final.');
@@ -1144,6 +1202,7 @@
       if (salvou) limparFormularioRemoto();
     });
     remotoLista.addEventListener('click',async e=>{
+      if (!exigirSincronizacao()) return;
       const editar=e.target.closest('[data-editar-remoto]'), excluir=e.target.closest('[data-excluir-remoto]');
       if (editar) {
         const periodo=plantoesRemotos.find(p=>p.id===editar.dataset.editarRemoto);
@@ -1180,6 +1239,7 @@
     feriasPessoa.addEventListener('change',carregarFeriasSelecionadas);
     document.querySelector('#btnCancelarFerias').addEventListener('click',()=>painelFerias.hidden=true);
     document.querySelector('#btnSalvarFerias').addEventListener('click',async()=>{
+      if (!exigirSincronizacao()) return;
       const dias = Number(feriasDias.value) || 0;
       if (!feriasInicio.value || dias < 1) {
         alert('Informe a data de início e uma quantidade de dias maior que zero.');
@@ -1202,6 +1262,7 @@
       renderizar();
     });
     feriasLista.addEventListener('click',async e=>{
+      if (!exigirSincronizacao()) return;
       const botao=e.target.closest('[data-remover-ferias]');
       if (!botao) return;
       const indice=Number(botao.dataset.removerFerias), cfg=configEquipe[feriasPessoa.value];
@@ -1213,6 +1274,7 @@
       renderizar();
     });
     document.querySelector('#btnSalvarAnotacao').addEventListener('click',async()=>{
+      if (!exigirSincronizacao()) return;
       if (!dataInput.value) return;
       const texto = textoAnotacao.value.trim();
       const diaMes = chaveDiaMes(dataInput.value);
@@ -1226,6 +1288,7 @@
       renderizar();
     });
     btnExcluirAnotacao.addEventListener('click',async()=>{
+      if (!exigirSincronizacao()) return;
       if (!dataInput.value || !textoDaAnotacao(dataInput.value)) return;
       const diaMes = chaveDiaMes(dataInput.value);
       Object.keys(anotacoesDatas).forEach(data => { if (chaveDiaMes(data)===diaMes && ehAniversario(anotacoesDatas[data])) delete anotacoesDatas[data]; });
