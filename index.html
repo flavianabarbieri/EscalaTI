@@ -89,6 +89,10 @@
     }
 
     .dia.feriado { border:3px solid #11945a; background:#e8f8ef; }
+    .dia.ponto-facultativo { border:2px dashed #cb8e29; background:#fff9ec; }
+    .dia.ponto-facultativo .selo-feriado { color:#805014; background:#fce8bc; font-size:.50rem; }
+    .dia.data-especial { border:2px solid #a9bed1; background:#f4f8fd; }
+    .dia.data-especial .selo-feriado { color:#315a7a; background:#dcecf9; }
     .dia.feriado:hover { border-color:#08783e; box-shadow:0 0 0 3px rgba(17,148,90,.18),0 8px 20px rgba(8,120,62,.18); }
     .selo-feriado { position:absolute; z-index:2; top:6px; right:6px; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:3px 6px; border-radius:6px; color:#075d34; background:#ccefdc; font-size:.57rem; font-weight:900; letter-spacing:.02em; }
     .dia.natal { border:3px solid #b51f2e; background:linear-gradient(145deg,#fff 0 45%,#fff1f2 45% 70%,#e8f8ef 70%); box-shadow:inset 0 0 0 2px rgba(255,255,255,.75),0 5px 15px rgba(181,31,46,.15); }
@@ -561,7 +565,7 @@
       <div class="topo-calendario"><h2 id="tituloMes"></h2><div class="navegacao"><button id="anterior" title="Mês anterior">‹</button><button id="proximo" title="Próximo mês">›</button></div></div>
       <div class="calendario" id="calendario"></div>
       <div class="observacoes" id="observacoes" hidden></div>
-      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span class="legenda-remoto"><b>R</b>Plantão remoto</span></div>
+      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span><b>◇</b>Ponto facultativo</span><span class="legenda-remoto"><b>R</b>Plantão remoto</span></div>
     </section>
     <footer>Escala de plantão da equipe</footer>
   </main>
@@ -586,7 +590,7 @@
     const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const hoje = new Date();
     const chaves = Object.keys(ESCALA).sort();
-    const primeira = chaves[0], ultima = chaves.at(-1);
+    const primeira = chaves[0], ultima = '2030-12'; // Calendário consultável até dezembro/2030
 
     // Identificação exclusiva da Equipe TI para não misturar dados com outras escalas.
     const CHAVE_EQUIPE = 'escalaEquipeTIV2';
@@ -966,13 +970,53 @@
       const mes=Math.floor((h+l-7*m+114)/31), dia=((h+l-7*m+114)%31)+1;
       return new Date(ano,mes-1,dia);
     }
-    function nomeFeriado(data) {
-      const ano=data.getFullYear(), chave=String(data.getMonth()+1).padStart(2,'0')+'-'+String(data.getDate()).padStart(2,'0');
-      const fixos={'01-01':'Confraternização Universal','04-21':'Tiradentes','05-01':'Dia do Trabalho','09-07':'Independência do Brasil','10-12':'Nossa Senhora Aparecida','11-02':'Finados','11-15':'Proclamação da República','11-20':'Consciência Negra','12-10':'Aniversário de Londrina','12-25':'Natal'};
-      if (fixos[chave]) return fixos[chave];
-      const easter=pascoa(ano), iso=isoLocal(data);
-      const moveis=[[-2,'Sexta-feira da Paixão'],[60,'Corpus Christi'],[68,'Sagrado Coração de Jesus']];
-      return moveis.find(([dias])=>isoLocal(adicionarDias(easter,dias))===iso)?.[1] || '';
+    // Calendário de feriados/datas móveis: cálculo anual pela Páscoa.
+    // Ponto facultativo não é tratado como folga automática na escala.
+    function eventoCalendario(data) {
+      const ano=data.getFullYear(), chave=isoLocal(data).slice(5), iso=isoLocal(data);
+      const fixos={
+        '01-01':['Confraternização Universal','feriado'],
+        '04-21':['Tiradentes','feriado'],
+        '05-01':['Dia do Trabalho','feriado'],
+        '09-07':['Independência do Brasil','feriado'],
+        '10-12':['Nossa Senhora Aparecida','feriado'],
+        '11-02':['Finados','feriado'],
+        '11-15':['Proclamação da República','feriado'],
+        '11-20':['Dia Nacional de Zumbi e da Consciência Negra','feriado'],
+        '12-10':['Aniversário de Londrina','feriado'],
+        '12-25':['Natal','feriado']
+      };
+      if (fixos[chave]) return {nome:fixos[chave][0],tipo:fixos[chave][1]};
+      const easter=pascoa(ano);
+      const moveis=[
+        [-48,'Segunda-feira de Carnaval','facultativo'],
+        [-47,'Carnaval (terça-feira)','facultativo'],
+        [-46,'Quarta-feira de Cinzas','facultativo'],
+        [-2,'Sexta-feira da Paixão','feriado'],
+        [0,'Domingo de Páscoa','comemorativa'],
+        [60,'Corpus Christi','facultativo'],
+        [68,'Sagrado Coração de Jesus','religiosa']
+      ];
+      for (const [dias,nome,tipo] of moveis) {
+        if (isoLocal(adicionarDias(easter,dias))===iso) return {nome,tipo};
+      }
+      // Dia das Mães: segundo domingo de maio, sem confundir com feriado.
+      if (data.getMonth()===4 && data.getDay()===0 && data.getDate()>=8 && data.getDate()<=14) {
+        return {nome:'Dia das Mães',tipo:'comemorativa'};
+      }
+      return null;
+    }
+    function nomeFeriado(data) { return eventoCalendario(data)?.nome || ''; }
+    function observacoesCalendarioMes(ano, mes) {
+      const total=new Date(ano,mes,0).getDate(), saida=[];
+      for(let dia=1;dia<=total;dia++) {
+        const evento=eventoCalendario(new Date(ano,mes-1,dia));
+        if(evento) {
+          const categoria=evento.tipo==='facultativo'?' (ponto facultativo)':evento.tipo==='comemorativa'?' (data comemorativa)':evento.tipo==='religiosa'?' (data religiosa)':'';
+          saida.push(`* ${dia}: ${evento.nome}${categoria}`);
+        }
+      }
+      return saida;
     }
     function estaDeFerias(cfg,data) {
       const atual=dataSemHora(data), periodos=Array.isArray(cfg?.feriasPeriodos)?cfg.feriasPeriodos:[];
@@ -1064,22 +1108,26 @@
       const total = new Date(mesVisivel.getFullYear(),mesVisivel.getMonth()+1,0).getDate();
       for(let d=1;d<=total;d++) {
         const dt = new Date(mesVisivel.getFullYear(),mesVisivel.getMonth(),d), info=situacao(dt), codigo=info.codigo;
-        const feriado=nomeFeriado(dt), nomesFerias=pessoasDeFerias(dt);
+        const evento=eventoCalendario(dt), feriado=evento?.nome || '', nomesFerias=pessoasDeFerias(dt);
         const classe = codigo==='P'?'p':codigo==='F'?'f':codigo==='FÉRIAS'?'ferias':'';
         const selecionado = dataInput.value===isoLocal(dt)?'selecionado':'';
         const chaveData = isoLocal(dt), textoAnotado = textoDaAnotacao(chaveData), temAnotacao = Boolean(textoAnotado), aniversario = ehAniversario(textoAnotado), natal = chaveDiaMes(chaveData)==='12-25', ehHoje = chaveData===isoLocal(hoje);
         const plantaoRemoto=periodoRemotoDaData(chaveData), nomeRemoto=plantaoRemoto ? nomePlantonistaRemoto(plantaoRemoto.pessoaId) : '';
         const marca = temAnotacao && !aniversario ? `<span class="marca-anotacao" title="${escaparHtml(textoAnotado)}">📝</span>` : '';
         const balaoAniversario = aniversario ? `<span class="balao-aniversario" title="${escaparHtml(textoAnotado)}">${escaparHtml(textoAnotado)}</span>` : '';
-        const seloFeriado = feriado ? `<span class="selo-feriado" title="${escaparHtml(feriado)}">${natal ? '🎄 NATAL' : 'FERIADO'}</span>` : '';
+        const seloFeriado = feriado ? `<span class="selo-feriado" title="${escaparHtml(feriado)}">${natal ? '🎄 NATAL' : evento.tipo==='facultativo' ? 'FACULTATIVO' : evento.tipo==='feriado' ? 'FERIADO' : 'DATA'}</span>` : '';
         const avisoRemoto = plantaoRemoto ? `<span class="plantao-remoto-badge ${classeCorPeriodoRemoto(plantaoRemoto,chaveData)}" title="Plantão remoto: ${escaparHtml(nomeRemoto)}">📡 ${escaparHtml(nomeRemoto)}</span>` : '';
         const avisoFerias = nomesFerias.length ? `<span class="ferias-nomes" title="Férias: ${escaparHtml(nomesFerias.join(', '))}">Férias: ${escaparHtml(nomesFerias.join(', '))}</span>` : '';
         const codigoHtml = codigo ? `<span class="codigo">${codigo}</span>` : '';
-        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${feriado ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''} ${ehHoje ? 'hoje-dia' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
+        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${evento?.tipo==='feriado' ? 'feriado' : evento?.tipo==='facultativo' ? 'ponto-facultativo' : evento ? 'data-especial' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''} ${ehHoje ? 'hoje-dia' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
       }
-      if (bloco?.observacoes.length) {
+      // Em 2027-2030 não reutilizar observações fixas copiadas de 2026.
+      const observacoesMes = mesVisivel.getFullYear() >= 2027
+        ? observacoesCalendarioMes(mesVisivel.getFullYear(), mesVisivel.getMonth()+1)
+        : (bloco?.observacoes || []);
+      if (observacoesMes.length) {
         observacoes.hidden=false;
-        observacoes.innerHTML='<strong>Observações do mês</strong>'+bloco.observacoes.map(o=>`<p>${o}</p>`).join('');
+        observacoes.innerHTML='<strong>Datas do mês</strong>'+observacoesMes.map(o=>`<p>${escaparHtml(o)}</p>`).join('');
       } else observacoes.hidden=true;
       document.querySelector('#anterior').disabled = chave<=primeira;
       document.querySelector('#proximo').disabled = chave>=ultima;
