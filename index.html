@@ -565,7 +565,7 @@
       <div class="topo-calendario"><h2 id="tituloMes"></h2><div class="navegacao"><button id="anterior" title="Mês anterior">‹</button><button id="proximo" title="Próximo mês">›</button></div></div>
       <div class="calendario" id="calendario"></div>
       <div class="observacoes" id="observacoes" hidden></div>
-      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span><b>◇</b>Ponto facultativo</span><span class="legenda-remoto"><b>R</b>Plantão remoto</span></div>
+      <div class="legenda"><span><b>P</b>Plantão</span><span><b>F</b>Folga</span><span><b>☀</b>Férias</span><span><b>◆</b>Feriado</span><span class="legenda-remoto"><b>R</b>Plantão remoto</span></div>
     </section>
     <footer>Escala de plantão da equipe</footer>
   </main>
@@ -990,7 +990,7 @@
       const easter=pascoa(ano);
       const moveis=[
         [-48,'Segunda-feira de Carnaval','facultativo'],
-        [-47,'Carnaval (terça-feira)','facultativo'],
+        [-47,'Carnaval','feriado'],
         [-46,'Quarta-feira de Cinzas','facultativo'],
         [-2,'Sexta-feira da Paixão','feriado'],
         [0,'Domingo de Páscoa','comemorativa'],
@@ -1011,10 +1011,7 @@
       const total=new Date(ano,mes,0).getDate(), saida=[];
       for(let dia=1;dia<=total;dia++) {
         const evento=eventoCalendario(new Date(ano,mes-1,dia));
-        if(evento) {
-          const categoria=evento.tipo==='facultativo'?' (ponto facultativo)':evento.tipo==='comemorativa'?' (data comemorativa)':evento.tipo==='religiosa'?' (data religiosa)':'';
-          saida.push(`* ${dia}: ${evento.nome}${categoria}`);
-        }
+        if(evento?.tipo==='feriado') saida.push(`* ${dia}: ${evento.nome}`);
       }
       return saida;
     }
@@ -1115,11 +1112,12 @@
         const plantaoRemoto=periodoRemotoDaData(chaveData), nomeRemoto=plantaoRemoto ? nomePlantonistaRemoto(plantaoRemoto.pessoaId) : '';
         const marca = temAnotacao && !aniversario ? `<span class="marca-anotacao" title="${escaparHtml(textoAnotado)}">📝</span>` : '';
         const balaoAniversario = aniversario ? `<span class="balao-aniversario" title="${escaparHtml(textoAnotado)}">${escaparHtml(textoAnotado)}</span>` : '';
-        const seloFeriado = feriado ? `<span class="selo-feriado" title="${escaparHtml(feriado)}">${natal ? '🎄 NATAL' : evento.tipo==='facultativo' ? 'FACULTATIVO' : evento.tipo==='feriado' ? 'FERIADO' : 'DATA'}</span>` : '';
+        const nomeEvento = evento?.tipo==='feriado' ? (evento?.nome || '') : '';
+        const seloFeriado = nomeEvento ? `<span class="selo-feriado" title="${escaparHtml(nomeEvento)}">${natal ? '🎄 NATAL' : 'FERIADO'}</span>` : '';
         const avisoRemoto = plantaoRemoto ? `<span class="plantao-remoto-badge ${classeCorPeriodoRemoto(plantaoRemoto,chaveData)}" title="Plantão remoto: ${escaparHtml(nomeRemoto)}">📡 ${escaparHtml(nomeRemoto)}</span>` : '';
         const avisoFerias = nomesFerias.length ? `<span class="ferias-nomes" title="Férias: ${escaparHtml(nomesFerias.join(', '))}">Férias: ${escaparHtml(nomesFerias.join(', '))}</span>` : '';
         const codigoHtml = codigo ? `<span class="codigo">${codigo}</span>` : '';
-        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${evento?.tipo==='feriado' ? 'feriado' : evento?.tipo==='facultativo' ? 'ponto-facultativo' : evento ? 'data-especial' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''} ${ehHoje ? 'hoje-dia' : ''}" data-data="${chaveData}" title="${escaparHtml([feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
+        calendario.insertAdjacentHTML('beforeend',`<button class="dia ${classe} ${selecionado} ${temAnotacao ? 'com-anotacao' : ''} ${evento?.tipo==='feriado' ? 'feriado' : ''} ${natal ? 'natal' : ''} ${aniversario ? 'aniversario' : ''} ${nomesFerias.length ? 'tem-ferias-equipe' : ''} ${plantaoRemoto ? 'tem-remoto' : ''} ${ehHoje ? 'hoje-dia' : ''}" data-data="${chaveData}" title="${escaparHtml([nomeEvento || feriado,textoAnotado,nomesFerias.length ? 'Férias: '+nomesFerias.join(', ') : '',plantaoRemoto ? 'Plantão remoto: '+nomeRemoto : ''].filter(Boolean).join(' • '))}"><span class="numero">${d}</span>${seloFeriado}${avisoRemoto}${avisoFerias}${balaoAniversario}${marca}${codigoHtml}</button>`);
       }
       // Em 2027-2030 não reutilizar observações fixas copiadas de 2026.
       const observacoesMes = mesVisivel.getFullYear() >= 2027
