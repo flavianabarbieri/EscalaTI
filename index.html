@@ -494,6 +494,13 @@
     .aviso-conexao p { margin:0; font-size:.87rem; }
     .aviso-conexao button { background:#fff; border:1px solid #e3b36e; color:#764509; min-height:36px; }
     .aviso-conexao[hidden] { display:none; }
+    .vigencia-atalho { margin-top:12px; display:flex; justify-content:flex-end; }
+    .vigencia-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .vigencia-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border:1px solid var(--borda); border-radius:10px; background:white; }
+    .vigencia-item small { display:block; color:var(--cinza); margin-top:4px; }
+    .vigencia-item .acoes { display:flex; gap:6px; flex-wrap:wrap; }
+    .vigencia-item button { padding:0 12px; min-height:36px; }
+    @media(max-width:700px) { .vigencia-grid {grid-template-columns:1fr} .vigencia-item {align-items:flex-start;flex-direction:column} .vigencia-atalho button {width:100%} }
   </style>
 </head>
 <body>
@@ -511,6 +518,22 @@
         <button class="configurar" id="btnConfigurar" type="button">Editar equipe</button>
         <button class="ferias-botao" id="btnFerias" type="button">Gerenciar férias</button>
       </div>
+      <div class="vigencia-atalho"><button class="configurar" id="btnVigencia" type="button">📅 Alterar escala / Histórico</button></div>
+      <section class="configuracoes" id="painelVigencia" hidden>
+        <h2>Alterar escala por data de vigência</h2>
+        <p>A nova jornada começa na data informada. As datas anteriores mantêm a configuração original.</p>
+        <div class="vigencia-grid">
+          <div><label for="vigPessoa">COLABORADOR</label><select id="vigPessoa"></select></div>
+          <div><label for="vigInicio">INÍCIO DA VIGÊNCIA</label><input id="vigInicio" type="date"></div>
+          <div><label for="vigTipo">NOVA ESCALA</label><select id="vigTipo"><option value="12x36">12x36 — alternância contínua</option><option value="mesma">6h — padrão</option><option value="inversa">6h — inversa</option><option value="8h">8h — fins de semana de folga</option><option value="12h_pares">12h — dias pares</option><option value="12h_impares">12h — dias ímpares</option><option value="personalizada">Personalizada</option></select></div>
+          <div><label for="vigSemana">HORÁRIO SEGUNDA A SEXTA</label><input id="vigSemana" value="07:00 às 19:00"></div>
+          <div><label for="vigSabado">HORÁRIO SÁBADO</label><input id="vigSabado" value="07:00 às 19:00"></div>
+          <div><label for="vigDomingo">HORÁRIO DOMINGO</label><input id="vigDomingo" value="07:00 às 19:00"></div>
+          <div id="vigPrimeiroCampo"><label for="vigPrimeiro">PRIMEIRO DIA DA ESCALA 12x36</label><select id="vigPrimeiro"><option value="P">Plantão</option><option value="F">Folga</option></select></div>
+        </div>
+        <div class="config-acoes"><button class="cancelar" id="btnFecharVigencia" type="button">Fechar</button><button class="adicionar" id="btnLimparVigencia" type="button">Nova alteração</button><button class="salvar" id="btnSalvarVigencia" type="button">Salvar nova escala</button></div>
+        <h2 style="margin-top:18px">Histórico de escalas</h2><div class="ferias-lista" id="vigLista"></div>
+      </section>
       <section class="remoto-resumo" id="remotoResumo">
         <div>
           <span class="rotulo">📡 PLANTÃO REMOTO</span>
@@ -621,6 +644,8 @@
     function normalizarEquipe(equipe) {
       Object.entries(equipe).forEach(([id,c]) => {
         if (!c.cargaHoraria) c.cargaHoraria = 'mesma';
+        if (!Array.isArray(c.historicoEscalas)) c.historicoEscalas = [];
+        c.historicoEscalas.sort((a,b)=>a.inicio.localeCompare(b.inicio));
         if (!Array.isArray(c.feriasPeriodos)) c.feriasPeriodos = [];
         if (typeof c.plantaoRemoto !== 'boolean') c.plantaoRemoto = PLANTONISTAS_REMOTOS_IDS.includes(id);
         if (c.feriasInicio && Number(c.feriasDias)>0 && !c.feriasPeriodos.some(p=>p.inicio===c.feriasInicio && Number(p.dias)===Number(c.feriasDias))) {
@@ -700,7 +725,7 @@
     const avisoConexao=document.querySelector('#avisoConexao');
     const tituloConexao=document.querySelector('#tituloConexao');
     const textoConexao=document.querySelector('#textoConexao');
-    const comandosEdicao=['btnConfigurar','btnFerias','btnRemoto','btnSalvar','btnSalvarFerias','btnSalvarRemoto','btnSalvarAnotacao','btnExcluirAnotacao'];
+    const comandosEdicao=['btnVigencia','btnSalvarVigencia','btnConfigurar','btnFerias','btnRemoto','btnSalvar','btnSalvarFerias','btnSalvarRemoto','btnSalvarAnotacao','btnExcluirAnotacao'];
     function atualizarEstadoConexao(ativo, mensagem='') {
       sincronizacaoPronta=ativo;
       avisoConexao.hidden=ativo;
@@ -711,7 +736,7 @@
         if(botao) botao.disabled=!ativo;
       });
       // Botões de remoção gerados dinamicamente também ficam bloqueados.
-      document.querySelectorAll('[data-remover-ferias],[data-excluir-remoto]').forEach(b=>b.disabled=!ativo);
+      document.querySelectorAll('[data-remover-ferias],[data-excluir-remoto],[data-vig-editar],[data-vig-excluir]').forEach(b=>b.disabled=!ativo);
     }
     function exigirSincronizacao() {
       if(sincronizacaoPronta) return true;
@@ -1056,14 +1081,27 @@
     dataInput.max = isoLocal(fimUltimoMes);
     dataInput.value = dentroDaBase(hoje) ? isoLocal(hoje) : `${primeira}-01`;
 
+    // A configuração original é a base; cada vigência substitui somente a jornada.
+    function escalaNaData(cfg,data) {
+      if (!cfg) return cfg;
+      const chave=isoLocal(data);
+      const vig=(cfg.historicoEscalas||[]).filter(v=>v.inicio<=chave).sort((a,b)=>b.inicio.localeCompare(a.inicio))[0];
+      return vig ? {...cfg,...vig} : cfg;
+    }
+    function diasEntreIso(inicio,fim) {
+      const utc=iso=>{const [a,m,d]=iso.split('-').map(Number);return Date.UTC(a,m-1,d);};
+      return Math.round((utc(fim)-utc(inicio))/86400000);
+    }
     function situacao(data) {
       const bloco = ESCALA[chaveMes(data)];
-      const cfg = configEquipe[pessoa.value];
+      const cfg = escalaNaData(configEquipe[pessoa.value],data);
       const cadastroProprio = bloco?.pessoas[pessoa.value];
       const usaPadrao = cfg?.cargaHoraria === 'mesma' || cfg?.cargaHoraria === 'inversa';
       const usaPlantao12h = cfg?.cargaHoraria === '12h_pares' || cfg?.cargaHoraria === '12h_impares';
       const cadastro = usaPadrao ? bloco?.pessoas.FLAVIANA : cadastroProprio;
-      let codigo = usaPadrao
+      let codigo = cfg?.cargaHoraria==='12x36' && cfg.inicio
+        ? (diasEntreIso(cfg.inicio,isoLocal(data))%2===0 ? cfg.primeiro : (cfg.primeiro==='P'?'F':'P'))
+        : usaPadrao
         ? codigoEscalaPadrao(data)
         : usaPlantao12h
           ? (data.getDate() % 2 === (cfg.cargaHoraria === '12h_pares' ? 0 : 1) ? 'P' : 'F')
@@ -1089,11 +1127,12 @@
       resultado.dataset.status = codigo;
       icone.textContent = emoji;
       tituloResultado.textContent = texto;
-      const cfg=configEquipe[pessoa.value], diaSemana=data.getDay();
+      const cfg=escalaNaData(configEquipe[pessoa.value],data), diaSemana=data.getDay();
       const horarioDia = diaSemana===0 ? cfg?.domingo : diaSemana===6 ? cfg?.sabado : cfg?.semana;
       const horario = codigo==='F' ? 'Sem expediente' : codigo==='FÉRIAS' ? 'Período de férias' : horarioDia;
       const identificacao = `${cfg?.nome||pessoa.value}${cfg?.setor ? ` — ${cfg.setor}` : ''}`;
       textoResultado.textContent = cadastro ? `${identificacao} • ${horario||cadastro.escala} • ${dataLonga}` : `${identificacao} • ${horario||'Horário não informado'} • ${dataLonga}`;
+      if(cfg?.inicio) textoResultado.textContent += ` • ${cfg.cargaHoraria==='12x36'?'12x36':'Nova escala'} desde ${formatarDataIso(cfg.inicio)}`;
       carregarAnotacao();
       mostrarRemotoData(isoLocal(data));
     }
@@ -1136,14 +1175,16 @@
     pessoa.addEventListener('change',renderizar);
     function linhaConfiguracao(id,c={}) {
       const carga = c.cargaHoraria || 'mesma';
+      const existente=Boolean(configEquipe[id]);
       const remotoMarcado = c.plantaoRemoto === true;
       return `<div class="config-grid" data-id="${id}" data-remoto="${remotoMarcado ? '1' : '0'}">
         <div><label>NOME</label><input class="cfg-nome" value="${escaparHtml(c.nome||'')}" placeholder="Nome do colaborador"></div>
-        <div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}" placeholder="Ex.: Escriturária UTI Adulto"></div>
-        <div><label>TIPO DE ESCALA</label><select class="cfg-carga"><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div>
-        <div><label>SEGUNDA A SEXTA</label><input class="cfg-semana" value="${escaparHtml(c.semana||'06:30 às 12:30')}" placeholder="Ex.: 07:00 às 19:00"></div>
-        <div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div>
-        <div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div>
+        <div><label>SETOR</label><input class="cfg-setor" value="${escaparHtml(c.setor||'')}"></div>
+        <div><label>TIPO DE ESCALA</label><select class="cfg-carga" ${existente?'disabled':''}><option value="mesma" ${carga==='mesma'?'selected':''}>Plantão 6h — escala padrão</option><option value="inversa" ${carga==='inversa'?'selected':''}>Plantão 6h — escala inversa</option><option value="12h_pares" ${carga==='12h_pares'?'selected':''}>Plantão 12h — dias pares</option><option value="12h_impares" ${carga==='12h_impares'?'selected':''}>Plantão 12h — dias ímpares</option><option value="8h" ${carga==='8h'?'selected':''}>8 horas — fins de semana de folga</option><option value="personalizada" ${carga==='personalizada'?'selected':''}>Personalizada — sem copiar plantões</option></select></div>
+        <div><label>SEGUNDA A SEXTA</label><input class="cfg-semana" ${existente?'readonly':''} value="${escaparHtml(c.semana||'06:30 às 12:30')}" placeholder="Ex.: 07:00 às 19:00"></div>
+        <div><label>SÁBADO (QUANDO FOR PLANTÃO)</label><input class="cfg-sabado" ${existente?'readonly':''} value="${escaparHtml(c.sabado||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div>
+        <div><label>DOMINGO (QUANDO FOR PLANTÃO)</label><input class="cfg-domingo" ${existente?'readonly':''} value="${escaparHtml(c.domingo||'07:00 às 19:00')}" placeholder="Ex.: 07:00 às 19:00"></div>
+        ${existente?'<div style="grid-column:1/-1;color:var(--cinza);font-size:.82rem">Para modificar a jornada sem perder o histórico, use Alterar escala / Histórico.</div>':''}
         <div class="config-linha-acoes">
           <button class="cfg-remoto-toggle ${remotoMarcado ? 'ativo' : ''}" type="button">
             ${remotoMarcado ? '✓ Integrante do plantão remoto' : '+ Adicionar ao plantão remoto'}
@@ -1154,6 +1195,7 @@
     }
     function abrirConfiguracoes() {
       configLinhas.innerHTML = pessoasDisponiveis().map(id=>linhaConfiguracao(id,configEquipe[id])).join('');
+      painelVigencia.hidden=true; painelFerias.hidden=true; painelRemoto.hidden=true;
       configuracoes.hidden=false;
       configuracoes.scrollIntoView({behavior:'smooth',block:'nearest'});
     }
@@ -1173,7 +1215,7 @@
         botaoRemoto.textContent=!ativo ? '✓ Integrante do plantão remoto' : '+ Adicionar ao plantão remoto';
 
         // Ao entrar para o remoto, sugere automaticamente a jornada usada por Caio/Gabriel.
-        if (!ativo) {
+        if (!ativo && !configEquipe[linha.dataset.id]) {
           const carga=linha.querySelector('.cfg-carga');
           const semana=linha.querySelector('.cfg-semana');
           const sabado=linha.querySelector('.cfg-sabado');
@@ -1190,14 +1232,16 @@
       if (!botao) return;
       const total=configLinhas.querySelectorAll('[data-id]').length;
       if (total<=1) return alert('A equipe precisa ter pelo menos um colaborador.');
-      botao.closest('[data-id]').remove();
+      const linha=botao.closest('[data-id]');
+      if(configEquipe[linha.dataset.id]?.historicoEscalas?.length) return alert('Este colaborador possui histórico de escalas. A remoção foi bloqueada para preservar os registros.');
+      linha.remove();
     });
     document.querySelector('#btnCancelar').addEventListener('click',()=>configuracoes.hidden=true);
     document.querySelector('#btnSalvar').addEventListener('click',async()=>{
       if (!exigirSincronizacao()) return;
       const selecionada=pessoa.value;
       const novaEquipe={};
-      configLinhas.querySelectorAll('[data-id]').forEach(linha=>{const id=linha.dataset.id,cadastroAnterior=configEquipe[id]||{}; const nome=linha.querySelector('.cfg-nome').value.trim(); if(!nome)return; novaEquipe[id]={nome,setor:linha.querySelector('.cfg-setor').value.trim(),cargaHoraria:linha.querySelector('.cfg-carga').value,semana:linha.querySelector('.cfg-semana').value.trim(),sabado:linha.querySelector('.cfg-sabado').value.trim(),domingo:linha.querySelector('.cfg-domingo').value.trim(),plantaoRemoto:linha.dataset.remoto==='1',feriasPeriodos:Array.isArray(cadastroAnterior.feriasPeriodos)?cadastroAnterior.feriasPeriodos:[]};});
+      configLinhas.querySelectorAll('[data-id]').forEach(linha=>{const id=linha.dataset.id,cadastroAnterior=configEquipe[id]||{}; const nome=linha.querySelector('.cfg-nome').value.trim(); if(!nome)return; novaEquipe[id]={...cadastroAnterior,nome,setor:linha.querySelector('.cfg-setor').value.trim(),cargaHoraria:cadastroAnterior.cargaHoraria??linha.querySelector('.cfg-carga').value,semana:cadastroAnterior.semana??linha.querySelector('.cfg-semana').value.trim(),sabado:cadastroAnterior.sabado??linha.querySelector('.cfg-sabado').value.trim(),domingo:cadastroAnterior.domingo??linha.querySelector('.cfg-domingo').value.trim(),plantaoRemoto:linha.dataset.remoto==='1',feriasPeriodos:Array.isArray(cadastroAnterior.feriasPeriodos)?cadastroAnterior.feriasPeriodos:[]};});
       if(!Object.keys(novaEquipe).length) return alert('Informe o nome de pelo menos um colaborador.');
 
       // Guarda o nome atual nos períodos antes de alguém ser removido da equipe.
@@ -1215,6 +1259,7 @@
     document.querySelector('#btnRemoto').addEventListener('click',()=>{
       preencherPessoasRemotas();
       renderizarListaRemoto();
+      painelVigencia.hidden=true;
       painelRemoto.hidden=false;
       painelFerias.hidden=true;
       configuracoes.hidden=true;
@@ -1278,6 +1323,7 @@
     });
     document.querySelector('#btnFerias').addEventListener('click',()=>{
       preencherFeriasPessoa();
+      painelVigencia.hidden=true; painelRemoto.hidden=true;
       painelFerias.hidden=false;
       configuracoes.hidden=true;
       painelFerias.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1346,6 +1392,73 @@
     document.querySelector('#btnHoje').addEventListener('click',()=>{ const alvo=dentroDaBase(hoje)?hoje:new Date(Number(primeira.slice(0,4)),Number(primeira.slice(5))-1,1); dataInput.value=isoLocal(alvo); mesVisivel=new Date(alvo.getFullYear(),alvo.getMonth(),1); renderizar(); });
     document.querySelector('#anterior').addEventListener('click',()=>{ mesVisivel=new Date(mesVisivel.getFullYear(),mesVisivel.getMonth()-1,1); renderizar(); });
     document.querySelector('#proximo').addEventListener('click',()=>{ mesVisivel=new Date(mesVisivel.getFullYear(),mesVisivel.getMonth()+1,1); renderizar(); });
+    const painelVigencia=document.querySelector('#painelVigencia');
+    const vig=id=>document.getElementById(id);
+    let vigEditando=null;
+    const tiposVig={mesma:'6h — padrão',inversa:'6h — inversa','8h':'8 horas','12x36':'12x36', '12h_pares':'12h — pares','12h_impares':'12h — ímpares',personalizada:'Personalizada'};
+    function atualizarCamposVig() { vig('vigPrimeiroCampo').hidden=vig('vigTipo').value!=='12x36'; }
+    function listarVig() {
+      const cfg=configEquipe[vig('vigPessoa').value];
+      if(!cfg) {vig('vigLista').textContent='Nenhum colaborador.';return;}
+      const resumo=v=>`${escaparHtml(tiposVig[v.cargaHoraria]||v.cargaHoraria)} • ${escaparHtml(v.semana||'')} / Sáb: ${escaparHtml(v.sabado||'')} / Dom: ${escaparHtml(v.domingo||'')}${v.cargaHoraria==='12x36'?' • Início: '+(v.primeiro==='P'?'plantão':'folga'):''}`;
+      const lista=cfg.historicoEscalas||[];
+      vig('vigLista').innerHTML=`<div class="vigencia-item"><div><strong>Escala original${lista.length?' — antes de '+formatarDataIso(lista[0].inicio):''}</strong><small>${resumo(cfg)}</small></div></div>`+lista.map((v,i)=>`<div class="vigencia-item"><div><strong>A partir de ${formatarDataIso(v.inicio)}${lista[i+1]?' até '+formatarDataIso(isoLocal(adicionarDias(new Date(lista[i+1].inicio+'T00:00:00'),-1))):''}</strong><small>${resumo(v)}</small></div><div class="acoes"><button class="adicionar" data-vig-editar="${i}" ${!sincronizacaoPronta?'disabled':''}>Editar</button><button class="remover-colaborador" data-vig-excluir="${i}" ${!sincronizacaoPronta?'disabled':''}>Excluir</button></div></div>`).join('');
+    }
+    function limparVig() {
+      vigEditando=null; vig('vigPessoa').disabled=false;
+      vig('vigInicio').value=dataInput.value||isoLocal(new Date());
+      vig('vigTipo').value='12x36'; vig('vigPrimeiro').value='P';
+      for(const campo of ['vigSemana','vigSabado','vigDomingo']) vig(campo).value='07:00 às 19:00';
+      vig('btnSalvarVigencia').textContent='Salvar nova escala'; atualizarCamposVig(); listarVig();
+    }
+    vig('vigInicio').min=dataInput.min; vig('vigInicio').max=dataInput.max;
+    vig('btnVigencia').addEventListener('click',()=>{
+      if(!exigirSincronizacao())return;
+      vig('vigPessoa').innerHTML=pessoasDisponiveis().map(id=>`<option value="${escaparHtml(id)}">${escaparHtml(configEquipe[id].nome)}</option>`).join('');
+      vig('vigPessoa').value=pessoa.value; limparVig();
+      configuracoes.hidden=painelFerias.hidden=painelRemoto.hidden=true;
+      painelVigencia.hidden=false; painelVigencia.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+    vig('vigPessoa').addEventListener('change',limparVig);
+    vig('vigTipo').addEventListener('change',()=>{
+      atualizarCamposVig();
+      const t=vig('vigTipo').value;
+      const base=configEquipe[vig('vigPessoa').value];
+      const horarios=t==='8h'?['8 horas','Folga','Folga']:t==='mesma'?['06:30 às 12:30','07:00 às 19:00','07:00 às 19:00']:t==='inversa'?['13:30 às 18:30','07:00 às 19:00','07:00 às 19:00']:t==='personalizada'?[base?.semana||'',base?.sabado||'',base?.domingo||'']:['07:00 às 19:00','07:00 às 19:00','07:00 às 19:00'];
+      ['vigSemana','vigSabado','vigDomingo'].forEach((id,i)=>vig(id).value=horarios[i]);
+    });
+    vig('btnLimparVigencia').addEventListener('click',limparVig);
+    vig('btnFecharVigencia').addEventListener('click',()=>{painelVigencia.hidden=true;limparVig();});
+    async function persistirVig() {
+      localStorage.setItem(CHAVE_EQUIPE,JSON.stringify(configEquipe));
+      const ok=await salvarDadosOnline(); listarVig(); renderizar();
+      return ok;
+    }
+    vig('btnSalvarVigencia').addEventListener('click',async()=>{
+      if(!exigirSincronizacao()||gravacaoEmAndamento||carregamentoEmAndamento)return;
+      const cfg=configEquipe[vig('vigPessoa').value], inicio=vig('vigInicio').value;
+      if(!cfg||!inicio||inicio<dataInput.min||inicio>dataInput.max)return alert('Informe uma data de vigência válida.');
+      const lista=cfg.historicoEscalas||[];
+      if(lista.some(v=>v.inicio===inicio&&v.inicio!==vigEditando))return alert('Já existe uma alteração nesta data. Use Editar.');
+      const v={inicio,cargaHoraria:vig('vigTipo').value,semana:vig('vigSemana').value.trim(),sabado:vig('vigSabado').value.trim(),domingo:vig('vigDomingo').value.trim(),primeiro:vig('vigPrimeiro').value};
+      if(!v.semana||!v.sabado||!v.domingo)return alert('Preencha os três horários (ou informe Folga).');
+      if(vigEditando!==null&&!confirm('Editar esta vigência recalculará o período correspondente. Continuar?'))return;
+      if(vigEditando===null&&inicio<isoLocal(new Date())&&!confirm('A data é anterior a hoje. Deseja alterar esse período histórico?'))return;
+      cfg.historicoEscalas=[...lista.filter(x=>x.inicio!==vigEditando),v].sort((a,b)=>a.inicio.localeCompare(b.inicio));
+      pessoa.value=vig('vigPessoa').value; dataInput.value=inicio; const [a,m]=inicio.split('-').map(Number); mesVisivel=new Date(a,m-1,1);
+      if(await persistirVig())limparVig();
+    });
+    vig('vigLista').addEventListener('click',async e=>{
+      if(!exigirSincronizacao()||gravacaoEmAndamento||carregamentoEmAndamento)return;
+      const cfg=configEquipe[vig('vigPessoa').value];
+      const editar=e.target.closest('[data-vig-editar]'), excluir=e.target.closest('[data-vig-excluir]');
+      if(!cfg)return;
+      if(editar){const v=cfg.historicoEscalas[Number(editar.dataset.vigEditar)];if(!v)return;
+        vigEditando=v.inicio; vig('vigPessoa').disabled=true; vig('vigInicio').value=v.inicio; vig('vigTipo').value=v.cargaHoraria; vig('vigSemana').value=v.semana; vig('vigSabado').value=v.sabado; vig('vigDomingo').value=v.domingo; vig('vigPrimeiro').value=v.primeiro||'P'; vig('btnSalvarVigencia').textContent='Salvar correção'; atualizarCamposVig(); return;}
+      if(excluir){const i=Number(excluir.dataset.vigExcluir);if(!cfg.historicoEscalas[i])return;
+        if(!confirm('Excluir esta vigência? A escala anterior voltará a valer no período correspondente.'))return;
+        cfg.historicoEscalas.splice(i,1); if(await persistirVig())limparVig();}
+    });
     preencherPessoasRemotas();
     renderizarListaRemoto();
     atualizarResumoRemoto();
